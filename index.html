@@ -284,7 +284,7 @@ function deptScore(id){
 }
 const selDepts=()=>DEPTS.filter(d=>S.sel[d.id]&&(S.met[d.id]||[]).length>0);
 const confCount=()=>selDepts().filter(d=>(S.met[d.id]||[]).length>0).length;
-function toggleDept(id){if(S.sel[id]){delete S.sel[id];delete S.met[id];S.exp[id]=false;}else{S.sel[id]=true;S.exp[id]=true;if(!S.met[id])S.met[id]=[];}render();}
+function toggleDept(id){if(S.sel[id]){delete S.sel[id];delete S.met[id];S.exp[id]=false;}else{S.sel[id]=true;S.exp[id]=true;if(!S.met[id])S.met[id]=(DEPTS.find(d=>d.id===id)||{metrics:[]}).metrics.slice();}render();}
 function toggleExp(id){if(!S.sel[id]){toggleDept(id);return;}S.exp[id]=!S.exp[id];render();}
 function toggleM(dId,m){if(!S.met[dId])S.met[dId]=[];const i=S.met[dId].indexOf(m);if(i>=0)S.met[dId].splice(i,1);else S.met[dId].push(m);render();}
 function addCust(dId){const v=(S.cust[dId]||'').trim();if(!v)return;if(!S.met[dId])S.met[dId]=[];if(!S.met[dId].includes(v))S.met[dId].push(v);S.cust[dId]='';render();}
