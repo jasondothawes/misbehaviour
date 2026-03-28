@@ -280,7 +280,7 @@ function newAnalysis(){S.phase='input';S.exp={};S.sel={};S.met={};S.cust={};S.co
 function renderExplainer(){
   return '<div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:6px;padding:1.25rem;margin-bottom:1.5rem;">'
   +'<div class="eyebrow" style="margin-bottom:10px;">what misaligned incentives cost</div>'
-  +'<div style="font-size:12px;color:var(--text2);line-height:1.9;margin-bottom:1rem;">Most SaaS growth problems aren&#39;t product problems — they&#39;re measurement problems. When every team is executing perfectly against the wrong goals, the damage is silent and lagging: NRR erodes 9 months after the deal closes, CAC efficiency degrades a quarter after the pipeline is built, engineering velocity collapses after the sprint that cut corners on stability. By the time it appears in your board pack, the structural cause is 6–12 months upstream. Misaligned incentives are the most expensive fault line in a SaaS business, and the hardest to see from inside it.</div>'
+  +'<div style="font-size:12px;color:var(--text2);line-height:1.9;margin-bottom:1rem;">Most growth problems aren&#39;t product or people problems — they&#39;re incentive problems. Incentives drive behaviours, and misaligned incentives are the most expensive fault line in your business. If you&#39;ve got a product customers love, talented employees working harder than ever, and growth that&#39;s stalling — it&#39;s time to eliminate misbehaviour.</div>'
   +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding-top:1rem;border-top:0.5px solid var(--border);">'
   +'<div style="font-size:11px;color:var(--text2);line-height:1.7;"><span style="color:var(--red-text);">Incentive inversion</span><br>Rewarding A while hoping for B — the most direct form of misalignment.</div>'
   +'<div style="font-size:11px;color:var(--text2);line-height:1.7;"><span style="color:var(--amber-text);">Ownership gap</span><br>Accountability diffused across teams with no shared metric for the outcome.</div>'
@@ -361,7 +361,7 @@ function exportPDF(){
   const w=window.open('','_blank');w.document.write(html);w.document.close();
 }
 
-const wm=`<div class="wordmark"><span class="wname">misbehaviour</span><span class="wtag">incentive audit</span></div>`;
+const wm=`<div class="wordmark"><span class="wname">misbehaviour</span><span class="wtag">incentive audit</span></div><div style="font-size:11px;color:var(--text3);font-style:italic;margin-top:-1.5rem;margin-bottom:2rem;"><span style="color:var(--text3);">n.</span> when every team is doing exactly what it&#39;s measured against and the business is suffering for it</div>`;
 
 function render(){
   const root=document.getElementById('root');
