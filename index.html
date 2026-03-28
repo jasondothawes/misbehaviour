@@ -116,6 +116,11 @@ textarea.field-input{resize:vertical;min-height:70px;line-height:1.6;}
 .symptom-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;}
 .symptom-item{display:flex;gap:8px;align-items:flex-start;font-size:12px;color:var(--text2);margin-bottom:5px;line-height:1.6;}
 .symptom-dot{width:4px;height:4px;border-radius:50%;background:var(--red);flex-shrink:0;margin-top:6px;}
+.where-to-start{background:var(--bg2);border:0.5px solid var(--border);border-radius:6px;padding:20px 24px;margin-bottom:2rem;}
+.wts-label{font-size:10px;color:var(--text3);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:12px;}
+.wts-text{font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:14px;}
+.wts-focus{font-size:13px;color:var(--text);line-height:1.7;border-top:0.5px solid var(--border2);padding-top:14px;}
+.wts-dept{color:var(--red);}
 </style>
 </head>
 <body>
@@ -335,29 +340,86 @@ function generateRuleBasedSummary(){
 }
 
 function generateRuleBasedSymptoms(){
-  const syms=[],seen=new Set();
-  const add=s=>{if(!seen.has(s)){seen.add(s);syms.push(s);}};
-  for(const c of S.conflicts.filter(c=>c.sev==='high'||c.sev==='medium').slice(0,8)){
-    const p=c.a+'/'+c.b;
-    if((p==='ae/cs'||p==='cs/ae')&&c.type==='inversion')add('NRR declining despite stable product satisfaction \u2014 churn traces back to deals that should not have closed');
-    if(p==='ae/marketing'||p==='marketing/ae')add('Pipeline coverage looks healthy but close rates are declining \u2014 marketing and sales define lead quality differently');
-    if(p==='product/eng'&&c.type==='inversion')add('Sprint velocity is up but incident rate and bug backlog are growing simultaneously');
-    if((p==='ta/leadership'||p==='ta/ae'||p==='ta/cs')&&c.type==='lag')add('90-day performance of recent hires is declining \u2014 hiring speed is outpacing hiring quality');
-    if((p==='leadership/ae')&&c.type==='inversion')add('Q-end discounting has become routine \u2014 deal margin shrinking without a corresponding increase in win rate');
-    if(p==='people/eng')add('Senior engineer attrition rising as team velocity declines \u2014 institutional knowledge is leaving faster than it can be replaced');
-    if(p==='product/cs'||p==='cs/product')add('CS onboarding time increasing as new features ship without adequate handoff or documentation');
-    if((p==='leadership/people'||p==='people/leadership')&&c.type==='lag')add('Engagement scores declining while leadership OKRs remain green \u2014 the damage is not yet visible in financial metrics');
-    if(p==='support/product'||p==='product/support')add('Known bugs accumulating in backlog while new features ship \u2014 support CSAT declining as a result');
-    if(p==='marketing/cs'&&c.type==='lag')add('Churn concentrated in specific marketing channel cohorts \u2014 ICP mismatch invisible at acquisition, visible at renewal');
-    if(p==='leadership/eng'&&c.type==='lag')add('Technical debt accelerating and delivery timelines slipping \u2014 the cost of past velocity decisions now visible in output');
-    if(p==='support/ta')add('Support headcount growing reactively to ticket volume rather than against root cause analysis');
-    if(p==='marketing/product')add('Sales cycles referencing capabilities not yet shipped \u2014 product and marketing roadmaps are not aligned');
-    if(p==='eng/cs')add('CS incident load rising with deployment frequency \u2014 fast shipping without stability gates is eroding customer trust');
-    if(p==='marketing/support')add('Support CSAT declining as brand promise exceeds delivery reality \u2014 gap between what is sold and what is experienced is widening');
-  }
+  if(!S.conflicts||!S.conflicts.length)return [];
+  const syms=[];const seen=new Set();
+  const push=s=>{if(!seen.has(s)){seen.add(s);syms.push(s);}};
+  const MAP={
+    'ae/cs':'NRR declining despite stable product satisfaction — churn traces back to deals that should not have closed',
+    'cs/ae':'NRR declining despite stable product satisfaction — churn traces back to deals that should not have closed',
+    'ae/product':'Roadmap commitments made to close deals are not being tracked — Sales and Product have different versions of what was promised',
+    'product/ae':'Roadmap commitments made to close deals are not being tracked — Sales and Product have different versions of what was promised',
+    'ae/marketing':'Sales is discounting deals that Marketing positioned as premium — the ICP is drifting without anyone owning it',
+    'marketing/ae':'MQL volume is up but pipeline quality is down — Sales is qualifying out leads that Marketing is celebrating',
+    'marketing/cs':'High churn in marketing-sourced cohorts is invisible to the marketing team until 6 months after the campaign',
+    'cs/marketing':'CS is firefighting onboarding failures on accounts that were a poor fit from the first touch',
+    'marketing/product':'Feature launches are announced before the product is ready — early adopters churn and leave negative reviews',
+    'product/marketing':'Product ships improvements that Marketing never hears about — launch leverage is left on the table',
+    'product/cs':'Adoption metrics look healthy but CS is spending significant time compensating for poor onboarding UX',
+    'cs/product':'CS escalations are not feeding back into the product roadmap — the same friction points recur quarter after quarter',
+    'product/eng':'Features ship on time but without the infrastructure CS needs — documentation, tooling, and edge cases are afterthoughts',
+    'eng/product':'Engineering velocity is high but regressions are absorbing CS and support capacity',
+    'eng/cs':'Deployment incidents correlate with CS escalation spikes but neither team owns the connection',
+    'cs/eng':'CS is absorbing the customer impact of engineering decisions without any mechanism to feed that cost back',
+    'leadership/ae':'End-of-quarter discount approvals are eroding NRR silently — the full cost only surfaces at renewal',
+    'ae/leadership':'Revenue targets are being hit through deal structure that Finance and CS will inherit as a liability',
+    'leadership/cs':'Retention is a lagging indicator — leadership is not seeing churn risk until it is already in the numbers',
+    'cs/leadership':'CS escalations are not reaching leadership until they become a churn event',
+    'marketing/support':'Support ticket volume spikes after campaigns — the brand promise creates expectations the product cannot consistently meet',
+    'support/marketing':'Support is handling expectations set by marketing copy that does not reflect the actual product experience',
+    'support/product':'The same support tickets recur every quarter — product is not treating support volume as a signal',
+    'product/support':'Support is compensating for product gaps that are not on any roadmap — workarounds are becoming permanent',
+    'support/ta':'Support attrition is high but TA measures time-to-fill not quality — the team is perpetually understaffed with junior hires',
+    'ta/support':'TA is filling support roles without understanding the product complexity — onboarding failure rate is high',
+    'ta/leadership':'Headcount growth is not translating to output — TA is hitting hire targets but delivery capacity is not improving',
+    'leadership/ta':'Headcount decisions are made on budget not capacity — teams are understaffed against their actual workload',
+    'ta/ae':'Sales ramp time is increasing as the ICP becomes more technical — TA is hiring against an outdated profile',
+    'ae/ta':'Sales attrition is being masked by aggressive backfill — the real problem is the quota structure not the candidate pipeline',
+    'ta/cs':'CS headcount is lagging revenue growth — TA is not upstream of the CS capacity problem',
+    'cs/ta':'CS is understaffed relative to the book of business — health scores are declining because the team cannot cover the accounts',
+    'people/eng':'Engineering attrition is silent — senior engineers leave before their impact shows in the delivery metrics',
+    'eng/people':'Engineering compensation is falling behind market — People is not benchmarking against the right comparators',
+    'people/leadership':'Leadership is using engagement scores as a lagging indicator — attrition risk is not visible until people are already leaving',
+    'leadership/people':'Headcount decisions are made on budget not capacity — teams are understaffed against their actual workload',
+    'finance/ae':'Deal economics are deteriorating quarter by quarter — discount approvals granted case by case with no view of cumulative margin impact',
+    'ae/finance':'Sales is structuring deals to hit quota in ways that create margin exposure Finance is not seeing in real time',
+    'finance/marketing':'Budget cuts hit marketing spend before the pipeline impact is visible — the Q3 shortfall traces to a Q2 finance decision',
+    'marketing/finance':'Marketing is optimising for short-term CAC but cohort LTV is not tracked — Finance approves spend without visibility of the return',
+    'finance/product':'Headcount freezes are stalling the roadmap without changing committed delivery dates — the gap is invisible until it becomes a miss',
+    'product/finance':'Investment decisions are made on headcount cost not output value — Finance cannot distinguish productive from unproductive engineering spend',
+    'finance/eng':'Engineering efficiency pressure is accelerating technical debt — the cost will surface as an incident or a rewrite not in the current budget',
+    'eng/finance':'Infrastructure investment is deferred to hit short-term cost targets — platform fragility is increasing without visibility on the risk',
+    'security/eng':'Deployment velocity is declining as compliance gates accumulate — Engineering routes around security friction rather than resolving it',
+    'eng/security':'Security requirements are treated as a blocker not a shared standard — the gap between what ships and what is hardened is widening',
+    'security/product':'Security vulnerabilities are deferred sprint to sprint — debt is accumulating in shipped features without a remediation roadmap',
+    'product/security':'Product timelines do not include security hardening — Security is reviewing after the fact rather than building in from the start',
+    'security/leadership':'Security investment is chronically underfunded relative to the company risk profile — treated as a cost centre until an incident forces the conversation',
+    'leadership/security':'The security posture is not visible at board level — risk is managed reactively rather than as a strategic input',
+  };
+  S.conflicts.forEach(c=>{
+    const k=c.a+'/'+c.b;const k2=c.b+'/'+c.a;
+    if(MAP[k])push(MAP[k]);else if(MAP[k2])push(MAP[k2]);
+  });
   return syms.slice(0,5);
 }
 
+function renderWhereToStart(){
+  if(!S.conflicts||!S.conflicts.length)return '';
+  const top=S.conflicts[0];
+  const tc={};S.conflicts.forEach(c=>{tc[c.type]=(tc[c.type]||0)+1;});
+  const dom=Object.entries(tc).sort((a,b)=>b[1]-a[1])[0][0];
+  const allD=[...new Set(S.conflicts.flatMap(c=>[c.a,c.b]))];
+  const topId=allD.map(d=>({id:d,sc:deptScore(d)})).sort((a,b)=>b.sc-a.sc)[0].id;
+  const topLbl=(DEPTS.find(d=>d.id===topId)||{label:topId}).label;
+  const typeText={
+    inversion:'The dominant pattern is incentive inversion — teams rewarded for outcomes that create costs elsewhere. The fix is rarely a personnel change. It requires redefining what success looks like at the boundary between the highest-exposure teams so the right outcome is measurable by both sides.',
+    ownership:'The dominant pattern is diffuse ownership — outcomes that matter to the business fall between teams with no shared metric. The fix requires identifying one team that owns the outcome end-to-end or introducing a shared metric that makes the gap visible to both sides.',
+    lag:'The dominant pattern is metric lag — teams optimising for short-term signals whose downstream costs do not surface for months. The fix requires leading indicators that make future costs visible now before the damage compounds.'
+  };
+  const ownerMap={ae:'CRO / Revenue leadership',cs:'CRO / Revenue leadership',marketing:'CRO / Revenue leadership',product:'CPO / Product leadership',eng:'CTO / Engineering leadership',finance:'CFO / Finance leadership',security:'CISO / Security leadership',leadership:'CEO / Board level',people:'CHRO / People leadership',support:'COO / Operations leadership',ta:'CHRO / People leadership'};
+  const owner=ownerMap[top.a]||ownerMap[top.b]||'cross-functional leadership';
+  const txt=typeText[dom]||typeText.inversion;
+  return '<div class="where-to-start"><div class="wts-label">WHERE TO START</div><div class="wts-text">'+txt+'</div><div class="wts-focus">The highest-leverage intervention is at the <span class="wts-dept">'+topLbl+'</span> boundary — this is where misalignment is doing the most structural damage. Ownership of the fix sits with '+owner+'.</div></div>';
+}
 function renderSummary(){
   const summary=generateRuleBasedSummary();
   if(!summary)return'';
@@ -491,7 +553,7 @@ function render(){
         <div class="eyebrow" style="margin-bottom:0;">select departments</div>
         <button class="btn" style="font-size:10px;padding:4px 10px;" onclick="S.phase='home';render()">← home</button>
       </div>
-      <div style="font-size:12px;color:var(--text2);line-height:1.8;margin-bottom:1.25rem;">Select the departments involved and the metrics each team is actively measured against — the more accurately this reflects reality, the more precise the output.</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.8;margin-bottom:1.25rem;">Select the departments involved and toggle the metrics each team is actively measured against. Each selection is matched against known incentive conflict patterns — the more accurately this reflects reality, the more precise the output.</div>
       ${sc>0?`<div class="prog-row"><div class="prog-track"><div class="prog-fill" style="width:${progress}%;"></div></div><div class="prog-lbl">${cc}/${sc} configured</div></div>`:''}
       ${DEPTS.map(d=>{
         const isSel=!!S.sel[d.id],isExp=!!S.exp[d.id],mC=(S.met[d.id]||[]).length;
@@ -604,7 +666,7 @@ function render(){
           </div>`:''}
         </div>`;
       }).join('')}
-      <div class="nav-row" style="margin-top:1.25rem;">
+      ${renderWhereToStart()}<div class="nav-row" style="margin-top:1.25rem;">
         <button class="btn btn-green" onclick="S.saveMode=true;render()">save ↓</button>
         <button class="btn btn-wide" onclick="exportPDF()">pdf ↓</button>
       </div>`;
