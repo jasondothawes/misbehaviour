@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>misbehaviour — incentive audit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--bg:#0a0a0a;--bg2:#111;--bg3:#181818;--bg4:#222;--border:#2a2a2a;--border2:#333;--text:#f0ede8;--text2:#888;--text3:#555;--red:#ff3b3b;--red-dim:#3d1212;--red-text:#ff8080;--amber:#f59e0b;--amber-dim:#2d1f08;--amber-text:#fbbf24;--purple:#a78bfa;--purple-dim:#1e1535;--purple-text:#c4b5fd;--green:#10b981;--green-dim:#0a2518;--green-text:#34d399;}
+html,body{background:var(--bg);min-height:100vh;font-family:'DM Mono',monospace;color:var(--text);}
+.app{max-width:700px;margin:0 auto;padding:2.5rem 1.5rem;}
+.wordmark{display:flex;align-items:baseline;gap:10px;margin-bottom:2.5rem;}
+.wname{font-family:'Syne',sans-serif;font-weight:800;font-size:24px;color:var(--text);letter-spacing:-0.5px;}
+.wtag{font-size:10px;color:var(--text3);letter-spacing:0.12em;text-transform:uppercase;padding:2px 7px;border:0.5px solid var(--border2);border-radius:3px;}
+.phase-track{display:flex;gap:4px;margin-bottom:2rem;}
+.pip{flex:1;height:2px;background:var(--border);border-radius:1px;transition:background 0.3s;}
+.pip.done{background:var(--green);}
+.pip.active{background:var(--red);}
+.eyebrow{font-size:10px;color:var(--text3);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px;}
+.dept-row{border:0.5px solid var(--border);border-radius:6px;margin-bottom:6px;background:var(--bg2);}
+.dept-row.sel{border-color:#3a2a2a;}
+.dept-hdr{display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;user-select:none;}
+.chk{width:16px;height:16px;border-radius:3px;border:0.5px solid var(--border2);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s;}
+.chk.on{background:var(--red);border-color:var(--red);}
+.chk svg{display:none;}
+.chk.on svg{display:block;}
+.dname{font-size:13px;color:var(--text);flex:1;}
+.dmc{font-size:11px;color:var(--text3);}
+.arr{font-size:9px;color:var(--text3);transition:transform 0.2s;display:inline-block;}
+.arr.open{transform:rotate(90deg);}
+.dbody{padding:0 14px 14px;border-top:0.5px solid var(--border);}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin:10px 0 8px;}
+.chip{padding:4px 10px;border-radius:3px;border:0.5px solid var(--border2);font-size:11px;color:var(--text2);cursor:pointer;background:transparent;font-family:'DM Mono',monospace;transition:all 0.15s;}
+.chip:hover{color:var(--text);}
+.chip.on{background:var(--red-dim);border-color:var(--red);color:var(--red-text);}
+.crow{display:flex;gap:6px;margin-top:4px;}
+.crow input{flex:1;font-size:11px;padding:5px 10px;border-radius:3px;border:0.5px solid var(--border2);background:var(--bg3);color:var(--text);font-family:'DM Mono',monospace;outline:none;}
+.crow input::placeholder{color:var(--text3);}
+.crow button{padding:5px 12px;border-radius:3px;border:0.5px solid var(--border2);background:transparent;color:var(--text2);font-size:11px;cursor:pointer;font-family:'DM Mono',monospace;}
+.crow button:hover{color:var(--text);}
+.prog-row{display:flex;align-items:center;gap:10px;margin-bottom:1.5rem;}
+.prog-track{flex:1;height:2px;background:var(--border);border-radius:1px;overflow:hidden;}
+.prog-fill{height:100%;background:var(--green);border-radius:1px;transition:width 0.3s;}
+.prog-lbl{font-size:11px;color:var(--text3);}
+.nav-row{display:flex;gap:8px;margin-top:1.5rem;}
+.btn{padding:9px 18px;border-radius:4px;border:0.5px solid var(--border2);background:transparent;color:var(--text2);font-size:12px;cursor:pointer;font-family:'DM Mono',monospace;letter-spacing:0.03em;transition:all 0.15s;}
+.btn:hover{color:var(--text);}
+.btn-danger{background:var(--red);border-color:var(--red);color:#fff;}
+.btn-danger:hover{background:#e03030;color:#fff;}
+.btn-danger:disabled{background:#3d1212;border-color:#3d1212;color:#ff8080;opacity:0.5;cursor:default;}
+.btn-green{background:var(--green);border-color:var(--green);color:#fff;}
+.btn-green:hover{background:#0ea572;}
+.btn-green:disabled{opacity:0.4;cursor:default;}
+.btn-wide{flex:1;text-align:center;}
+.btn:disabled{opacity:0.3;cursor:default;}
+.stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:1.5rem;}
+.stat{background:var(--bg2);border:0.5px solid var(--border);border-radius:6px;padding:14px;}
+.sval{font-size:26px;font-weight:500;font-family:'Syne',sans-serif;}
+.slbl{font-size:10px;color:var(--text3);margin-top:4px;letter-spacing:0.06em;text-transform:uppercase;}
+.hm-wrap{background:var(--bg2);border:0.5px solid var(--border);border-radius:6px;padding:1rem;margin-bottom:1rem;}
+.hm-row{display:grid;grid-template-columns:130px 1fr;gap:8px;align-items:center;margin-bottom:6px;}
+.hm-row:last-child{margin-bottom:0;}
+.hm-lbl{font-size:11px;color:var(--text2);text-align:right;}
+.hm-track{position:relative;height:20px;background:var(--bg4);border-radius:3px;overflow:hidden;}
+.hm-fill{height:100%;border-radius:3px;}
+.hm-val{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:10px;font-weight:500;}
+.cc{border:0.5px solid var(--border);border-radius:6px;margin-bottom:6px;background:var(--bg2);}
+.cc.high{border-color:#3a1a1a;}
+.chdr{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;cursor:pointer;user-select:none;}
+.cdot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.cbt{flex:1;min-width:0;}
+.ctitle{font-size:12px;color:var(--text);line-height:1.5;}
+.cmeta{font-size:10px;color:var(--text3);margin-top:3px;}
+.ctags{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;}
+.tag{font-size:10px;padding:2px 7px;border-radius:3px;border:0.5px solid var(--border2);color:var(--text3);}
+.spill{font-size:11px;padding:3px 8px;border-radius:3px;font-weight:500;white-space:nowrap;flex-shrink:0;}
+.cexp{padding:0 14px 14px;border-top:0.5px solid var(--border);}
+.frow{display:grid;grid-template-columns:90px 1fr;gap:8px;padding:9px 0;border-bottom:0.5px solid var(--border);}
+.frow:last-child{border-bottom:none;}
+.fkey{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;padding-top:2px;}
+.fval{font-size:12px;color:var(--text);line-height:1.7;}
+.fgood{color:var(--green-text);}
+.filter-row{display:flex;gap:5px;margin-bottom:1rem;flex-wrap:wrap;}
+.fbtn{padding:3px 10px;border-radius:3px;border:0.5px solid var(--border);font-size:10px;color:var(--text3);cursor:pointer;background:transparent;font-family:'DM Mono',monospace;transition:all 0.15s;}
+.fbtn:hover{color:var(--text2);}
+.fbtn.on{background:var(--red-dim);border-color:var(--red);color:var(--red-text);}
+.modal{background:var(--bg2);border:0.5px solid var(--border2);border-radius:8px;padding:1.5rem;}
+.field-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px;}
+.field-input{width:100%;font-size:13px;padding:8px 12px;border-radius:4px;border:0.5px solid var(--border2);background:var(--bg3);color:var(--text);font-family:'DM Mono',monospace;margin-bottom:1rem;outline:none;}
+.field-input::placeholder{color:var(--text3);}
+textarea.field-input{resize:vertical;min-height:70px;line-height:1.6;}
+.saved-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:6px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:border-color 0.15s;}
+.saved-card:hover{border-color:var(--border2);}
+.saved-name{font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px;}
+.saved-meta{font-size:11px;color:var(--text3);}
+.saved-stats{display:flex;gap:10px;margin-top:8px;}
+.saved-stat{font-size:11px;color:var(--text2);}
+.saved-stat span{color:var(--red);}
+.del-btn{font-size:10px;color:var(--text3);cursor:pointer;padding:2px 6px;border:0.5px solid var(--border);border-radius:3px;background:transparent;font-family:'DM Mono',monospace;margin-left:auto;flex-shrink:0;}
+.del-btn:hover{color:var(--red);border-color:var(--red);}
+.toast{background:var(--green-dim);border:0.5px solid var(--green);border-radius:4px;padding:8px 14px;font-size:11px;color:var(--green-text);margin-bottom:1rem;text-align:center;}
+.error-toast{background:#3d1212;border:0.5px solid var(--red);border-radius:4px;padding:8px 14px;font-size:11px;color:var(--red-text);margin-bottom:1rem;}
+.empty-state{font-size:12px;color:var(--text3);padding:2.5rem 1rem;text-align:center;border:0.5px dashed var(--border);border-radius:6px;line-height:2;}
+.settings-row{display:flex;align-items:center;gap:8px;margin-bottom:1.5rem;padding:10px 14px;background:var(--bg2);border:0.5px solid var(--border);border-radius:6px;}
+.settings-row input{flex:1;font-size:11px;padding:4px 8px;border-radius:3px;border:0.5px solid var(--border2);background:var(--bg3);color:var(--text);font-family:'DM Mono',monospace;outline:none;}
+.settings-row input::placeholder{color:var(--text3);}
+.key-status{font-size:10px;flex-shrink:0;}
+.exec-summary{background:var(--bg2);border:0.5px solid var(--border2);border-radius:6px;padding:1.25rem;margin-bottom:1.25rem;position:relative;}
+.exec-summary-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px;}
+.exec-summary-text{font-size:13px;color:var(--text);line-height:1.9;}
+.exec-summary-loading{font-size:12px;color:var(--text3);font-style:normal;animation:pulse 1.5s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:0.4;}50%{opacity:1;}}
+.symptoms{margin-top:12px;padding-top:12px;border-top:0.5px solid var(--border);}
+.symptom-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;}
+.symptom-item{display:flex;gap:8px;align-items:flex-start;font-size:12px;color:var(--text2);margin-bottom:5px;line-height:1.6;}
+.symptom-dot{width:4px;height:4px;border-radius:50%;background:var(--red);flex-shrink:0;margin-top:6px;}
+</style>
+</head>
+<body>
+<div class="app" id="root"></div>
+<script>
+const DEPTS=[
+  {id:'ae',label:'Sales (AE)',metrics:['New logo bookings','Pipeline coverage','ACV','Win rate','Time to close','Quota attainment']},
+  {id:'cs',label:'Customer success',metrics:['NRR','Churn rate','NPS','Time to value','Expansion ARR','Health score']},
+  {id:'support',label:'Support',metrics:['CSAT','First response time','Ticket volume','Resolution rate','Escalation rate','Deflection rate']},
+  {id:'product',label:'Product',metrics:['Features shipped','Roadmap adherence','Adoption rate','Time to market','DAU/MAU','Feature usage']},
+  {id:'eng',label:'Engineering',metrics:['Velocity','Bug rate','Deployment frequency','Incidents','Tech debt ratio','DORA metrics']},
+  {id:'marketing',label:'Marketing',metrics:['MQL volume','MQL-to-opp rate','CAC','Pipeline sourced','Brand metrics','CPL']},
+  {id:'ta',label:'Talent acquisition',metrics:['Time to fill','Offer acceptance rate','Pipeline volume','Cost per hire','Quality of hire','Diversity of slate']},
+  {id:'leadership',label:'Leadership',metrics:['Revenue vs target','OKR score','Headcount vs plan','EBITDA','NRR','Burn multiple']},
+  {id:'people',label:'People / HR',metrics:['eNPS','Attrition rate','Time to productivity','Engagement score','Promotion rate','Training completion']},
+];
+
+const TM={
+  inversion:{label:'Incentive inversion',color:'#ff3b3b',bg:'#3d1212',txt:'#ff8080',w:3},
+  ownership:{label:'Ownership gap',color:'#f59e0b',bg:'#2d1f08',txt:'#fbbf24',w:2},
+  lag:{label:'Metric lag',color:'#a78bfa',bg:'#1e1535',txt:'#c4b5fd',w:2},
+};
+
+// Research-backed pairing impact weights
+// Holmstrom-Milgrom (1991): measurability gap amplifies misalignment
+// Kerr (1975): rewarding A while hoping for B — worst when inversion is direct
+// Moral hazard > adverse selection > information asymmetry in damage speed
+const RULES=[
+  // AE/CS — classic moral hazard, measurable close vs diffuse retention. Weight 3 (H-M direct application)
+  {a:'ae',b:'cs',pw:3,aM:['New logo bookings','Win rate','Time to close','Quota attainment'],bM:['NRR','Churn rate','Health score'],label:"Sales closes deals CS can't retain",type:'inversion',owner:'CRO / Revenue leadership',rootCause:'AE comp rewards close, not customer lifetime value. No shared metric between sales and CS.',fix:'Introduce clawback on commission for deals churning within 6 months. Add NRR to AE variable comp at 10-15% weighting.',good:'AEs self-qualify based on fit, not just willingness to sign.'},
+  {a:'ae',b:'cs',pw:3,aM:['ACV','Pipeline coverage'],bM:['Expansion ARR','Time to value'],label:'Revenue recognised at close, not value delivery',type:'ownership',owner:'CRO + CS leadership',rootCause:'Finance and sales treat contract signature as success. CS measured on outcomes they did not control.',fix:'Gate a portion of AE commission on 90-day customer health score. Align CS onboarding SLA to deal size.',good:'CS consistently hits time-to-value targets because AEs set realistic expectations.'},
+  // AE/Product — moral hazard + information asymmetry combined. Weight 3
+  {a:'ae',b:'product',pw:3,aM:['New logo bookings','Win rate','Quota attainment'],bM:['Roadmap adherence','Features shipped'],label:'Sales promises features not on the roadmap',type:'inversion',owner:'CEO / CRO + CPO jointly',rootCause:'No formal process to validate feature commitments before close. Product has no visibility into what is being promised.',fix:'Require Product sign-off on custom roadmap commitments above a defined ACV threshold. Log all commitments in CRM.',good:'Product is aware of all feature commitments before contracts are signed.'},
+  // AE/Marketing — adverse selection, MQL quality hard to measure at creation. Weight 2
+  {a:'ae',b:'marketing',pw:2,aM:['Win rate','Pipeline coverage'],bM:['MQL volume','CPL'],label:'Marketing optimises for volume, sales for quality',type:'ownership',owner:'CMO + CRO',rootCause:'Marketing measured on top-of-funnel, sales from mid-funnel down. No shared accountability for conversion.',fix:'Introduce a shared SQL-to-close metric. Include MQL quality in marketing OKRs alongside volume.',good:'Marketing voluntarily reduces MQL volume to improve conversion rate.'},
+  {a:'marketing',b:'ae',pw:2,aM:['MQL volume','Pipeline sourced'],bM:['Win rate','Time to close'],label:'MQL-to-pipeline conversion blamed on the other team',type:'ownership',owner:'CRO + CMO',rootCause:'No agreed definition of a qualified lead. Marketing and sales define quality differently.',fix:'Co-define and document MQL/SQL criteria. Run a monthly pipeline review with both teams accountable.',good:'Both teams agree on lead quality and neither blames the other for conversion gaps.'},
+  {a:'marketing',b:'ae',pw:1,aM:['CAC','CPL'],bM:['Quota attainment','ACV'],label:'CAC vs deal size creates budget tension',type:'ownership',owner:'CFO + CMO',rootCause:'Marketing budget set independently of deal economics. High CAC on low-ACV segments goes unnoticed.',fix:'Build a CAC:LTV ratio by segment. Shift spend toward segments where LTV justifies acquisition cost.',good:'Marketing spend decisions are made with LTV visibility, not just CPL.'},
+  // Product/Eng — textbook multitask problem (Kerr + H-M). Weight 3
+  {a:'product',b:'eng',pw:3,aM:['Features shipped','Time to market','Roadmap adherence'],bM:['Bug rate','Tech debt ratio','DORA metrics'],label:'Velocity targets trade against quality and stability',type:'inversion',owner:'CPO + CTO jointly',rootCause:'Product measured on shipping, engineering on stability. Sprint planning optimises for output not outcome.',fix:'Include bug rate and incident count in product OKRs. Allocate 20% of every sprint to tech debt by default.',good:'Features ship with agreed quality gates. Tech debt does not accumulate sprint-over-sprint.'},
+  {a:'product',b:'eng',pw:3,aM:['Features shipped','DAU/MAU'],bM:['Incidents','Deployment frequency'],label:'Shipping speed measured separately from incident rate',type:'ownership',owner:'CTO',rootCause:'Post-launch stability is an engineering metric. Product has no skin in the game after launch.',fix:'Add a 30-day post-launch stability score to product success metrics. P1 incidents pause roadmap work.',good:'Product actively monitors post-launch health, not just adoption curves.'},
+  // Product/Support — ownership gap. Weight 2
+  {a:'product',b:'support',pw:2,aM:['Features shipped','Adoption rate'],bM:['Ticket volume','Escalation rate','Deflection rate'],label:'New features generate support load not owned by product',type:'ownership',owner:'CPO + VP Support',rootCause:'Product success measured at launch. Support cost from poor UX or missing docs falls entirely on Support.',fix:'Require a support readiness checklist before any feature ships. Track support tickets per feature post-launch.',good:'Product includes support ticket volume in feature success criteria.'},
+  {a:'support',b:'product',pw:2,aM:['CSAT','First response time','Resolution rate'],bM:['Roadmap adherence','Time to market'],label:'Known bugs sit in backlog while new features ship',type:'inversion',owner:'CPO',rootCause:'Bug prioritisation competes directly with feature work. Product has no metric that penalises unresolved bugs.',fix:'Introduce a bug SLA: P1 within 24h, P2 within 2 weeks. Unresolved P1/P2 bugs block new feature releases.',good:'Support can predict bug resolution timelines. CSAT stops being dragged down by known issues.'},
+  // CS/Support — ownership gap, NPS drag. Weight 2
+  {a:'cs',b:'support',pw:2,aM:['NPS','NRR','Health score'],bM:['Ticket volume','First response time'],label:'CS owns NPS but cannot control support experience',type:'ownership',owner:'CCO / VP CS',rootCause:'NPS is influenced heavily by support interactions but CS and Support have separate managers.',fix:'Create a shared CSAT + NPS review between CS and Support. Add escalation rate to CS team health metrics.',good:'CS and Support review customer sentiment data together monthly.'},
+  // CS/AE — lag, shows in renewal cycle. Weight 2
+  {a:'cs',b:'ae',pw:2,aM:['Churn rate','Time to value','Health score'],bM:['Time to close','Quota attainment'],label:'Fast closes create slow time-to-value for CS',type:'lag',owner:'CRO + CCO',rootCause:'Speed-to-close is rewarded in sales. Downstream cost surfaces months later in CS.',fix:'Track time-to-first-value by AE. Include it in AE QBR data. CS flags deals at risk of slow TTV before they churn.',good:'AEs factor implementation complexity into deal timelines upfront.'},
+  // TA/Leadership — raised to 3: headcount volatility + speed pressure = direct P&L impact
+  {a:'ta',b:'leadership',pw:3,aM:['Time to fill','Pipeline volume','Cost per hire'],bM:['Headcount vs plan','EBITDA'],label:'TA measured on speed while leadership changes headcount plan',type:'inversion',owner:'CHRO + CFO',rootCause:'TA invests in pipelines against approved headcount. Finance changes plan without accounting for TA sunk cost.',fix:'Require 4-week notice before any headcount freeze or revision. TA pipeline investment treated as a budget commitment.',good:'TA is consulted before headcount plans change, not notified after.'},
+  {a:'ta',b:'leadership',pw:3,aM:['Offer acceptance rate','Diversity of slate'],bM:['OKR score','Revenue vs target'],label:'Quality-of-hire not tracked against business outcomes',type:'lag',owner:'CHRO',rootCause:'TA success ends at offer acceptance. No mechanism connects hire quality to business performance.',fix:'Implement 90-day and 12-month performance reviews tied back to TA source. Report quality-of-hire by recruiter.',good:'TA optimises sourcing based on downstream performance data, not just fill rate.'},
+  // TA/People — raised to 2: early attrition from speed hiring well documented
+  {a:'ta',b:'people',pw:2,aM:['Time to fill','Quality of hire'],bM:['Attrition rate','Time to productivity'],label:'TA success measured at offer, not 90-day retention',type:'lag',owner:'CHRO',rootCause:'TA closes at offer. Attrition within 90 days is treated as a People problem, not a hiring quality signal.',fix:'Track 90-day attrition by TA source and hiring manager. Include early attrition in TA performance metrics.',good:'TA and People review early attrition data together and adjust hiring criteria accordingly.'},
+  // TA/Engineering — NEW: speed hiring into technical roles compounds debt. Weight 2
+  {a:'ta',b:'eng',pw:2,aM:['Time to fill','Cost per hire'],bM:['Bug rate','Tech debt ratio','DORA metrics'],label:'Speed hiring into engineering degrades technical quality',type:'lag',owner:'CTO + CHRO',rootCause:'Time-to-fill pressure reduces rigour in technical screening. Under-assessed engineers increase bug rate and tech debt over time.',fix:'Define minimum technical bar for engineering roles that cannot be waived under hiring pressure. Include 90-day quality metrics in TA reporting.',good:'Engineering hire quality is tracked and reported alongside velocity and bug rate.'},
+  // TA/AE — NEW: speed hiring into quota roles inflates ramp time. Weight 2
+  {a:'ta',b:'ae',pw:2,aM:['Time to fill','Offer acceptance rate'],bM:['Win rate','Quota attainment','Time to close'],label:'Speed hiring into sales inflates ramp time and drags win rate',type:'lag',owner:'CRO + CHRO',rootCause:'Offer acceptance rate rewards closing candidates quickly, not hiring the right ones. Mis-hires in quota-carrying roles take 6-9 months to surface.',fix:'Add 90-day and 6-month quota attainment to TA reporting by role. Weight candidate quality over speed in sales hiring process.',good:'Sales ramp time is predictable and TA is accountable for hire quality, not just fill rate.'},
+  // TA/CS — NEW: volume hiring into CS without quality gates increases churn exposure. Weight 2
+  {a:'ta',b:'cs',pw:2,aM:['Time to fill','Pipeline volume'],bM:['NRR','Churn rate','Health score'],label:'Volume hiring into CS without quality gates increases churn exposure',type:'lag',owner:'CCO + CHRO',rootCause:'CS hiring prioritises speed to meet headcount plan. Poor-fit CS hires struggle to manage complex accounts, accelerating churn.',fix:'Define CS hire profile by account complexity. Track 90-day NRR impact by CS cohort hired under different TA conditions.',good:'CS headcount quality is a leading indicator for NRR, not a lagging cost line.'},
+  // Leadership/People — lag, compounds over time. Weight 2
+  {a:'leadership',b:'people',pw:2,aM:['OKR score','Revenue vs target'],bM:['eNPS','Engagement score','Attrition rate'],label:'OKR scores stay green while engagement quietly erodes',type:'lag',owner:'CEO + CHRO',rootCause:'Engagement and attrition are lagging indicators. Damage is done before the data shows it.',fix:'Add eNPS and regrettable attrition to leadership-level OKRs. Review engagement data in every leadership QBR.',good:'Leadership treats a falling eNPS with the same urgency as a falling NRR.'},
+  // Leadership/Eng — lag between revenue decisions and tech debt. Weight 2
+  {a:'leadership',b:'eng',pw:2,aM:['Revenue vs target','Burn multiple'],bM:['Tech debt ratio','DORA metrics'],label:'Short-term revenue focus accelerates technical debt',type:'lag',owner:'CEO + CTO',rootCause:'Revenue pressure leads to shortcuts. Tech debt cost is invisible in short-term financials.',fix:'Include tech debt ratio in engineering OKRs reviewed by the board. Quantify debt as engineering cost per quarter.',good:'Leadership understands the revenue cost of tech debt and funds remediation proactively.'},
+  // People/Leadership — lag. Weight 2
+  {a:'people',b:'leadership',pw:2,aM:['eNPS','Engagement score','Attrition rate'],bM:['Headcount vs plan','EBITDA'],label:'People metrics lag - attrition visible only after it spikes',type:'lag',owner:'CHRO + CFO',rootCause:'People metrics reported separately from financial metrics. Leadership sees cost, not the leading indicators.',fix:'Build a people cost model: cost of attrition per role, cost of disengagement. Present alongside EBITDA in board packs.',good:'CFO can quantify the financial cost of a 1pt drop in eNPS.'},
+];
+
+// Research-backed scoring: signal_strength × type_weight × pairing_weight, normalised to 0-10
+// Holmstrom-Milgrom: measurability gap amplifies risk → signal strength matters
+// Type weights: inversion(3) > ownership(2) = lag(2) per moral hazard severity literature
+// Pairing weights: empirically grounded in P&L consequence proximity
+function calcScore(r,aM,bM){
+  const aH=r.aM.filter(m=>aM.includes(m)).length;
+  const bH=r.bM.filter(m=>bM.includes(m)).length;
+  const signal=((aH/r.aM.length)+(bH/r.bM.length))/2;
+  const raw=signal*TM[r.type].w*r.pw;
+  return Math.min(10,Math.round((raw/9)*100)/10);
+}
+
+const toSev=s=>s>=7?'high':s>=4?'medium':'low';
+const sevCol=s=>s==='high'?'#ff3b3b':s==='medium'?'#f59e0b':'#10b981';
+const barCol=n=>n>=7?'#ff3b3b':n>=4?'#f59e0b':'#10b981';
+
+const LS_KEY='misbehaviour-analyses';
+const LS_API='misbehaviour-apikey';
+function lsLoad(){try{return JSON.parse(localStorage.getItem(LS_KEY)||'[]');}catch(e){return[];}}
+function lsSave(arr){try{localStorage.setItem(LS_KEY,JSON.stringify(arr));}catch(e){}}
+function getApiKey(){return localStorage.getItem(LS_API)||'';}
+function setApiKey(k){localStorage.setItem(LS_API,k);}
+
+let S={
+  phase:'home',exp:{},sel:{},met:{},cust:{},conflicts:[],
+  filter:'all',cExp:{},saveMode:false,saveName:'',saveNotes:'',
+  toast:'',errorMsg:'',saved:lsLoad(),
+  apiKey:getApiKey(),showApiInput:false,
+  execSummary:'',execSymptoms:[],execLoading:false,execError:''
+};
+
+async function generateExecSummary(){
+  if(!S.apiKey||!S.conflicts.length)return;
+  S.execLoading=true;S.execSummary='';S.execSymptoms=[];S.execError='';
+  render();
+
+  const top=S.conflicts.slice(0,8);
+  const deptScores=selDepts().map(d=>({label:d.label,score:deptScore(d.id)})).sort((a,b)=>b.score-a.score);
+  const high=S.conflicts.filter(c=>c.sev==='high');
+
+  const prompt=`You are a McKinsey principal writing an executive summary for a SaaS company's board. You have just run an incentive misalignment audit and found the following conflicts.
+
+Top conflicts by severity score:
+${top.map(c=>`- ${c.label} (${c.aLabel} vs ${c.bLabel}, type: ${TM[c.type].label}, score: ${c.sc.toFixed(1)}/10)`).join('\n')}
+
+Department exposure scores (higher = more misalignment):
+${deptScores.map(d=>`- ${d.label}: ${d.score}/10`).join('\n')}
+
+High severity conflicts: ${high.length} of ${S.conflicts.length} total.
+
+Write:
+1. A single executive summary paragraph (3-5 sentences). Be direct, specific, and slightly uncomfortable to read. Name the pattern of misalignment, what it reveals about how this company is structured, and what it is likely costing them. Do not use generic language. Do not mention "this audit" or "this tool". Write as if you observed this company directly.
+
+2. A list of exactly 4-5 likely symptoms this company is probably already experiencing. These should be concrete, observable, measurable signals — not vague statements. Each symptom should be one sentence.
+
+Respond ONLY with valid JSON, no markdown:
+{
+  "summary": "paragraph text here",
+  "symptoms": ["symptom 1", "symptom 2", "symptom 3", "symptom 4", "symptom 5"]
+}`;
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':S.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,messages:[{role:'user',content:prompt}]})
+    });
+    if(!res.ok){const e=await res.json();throw new Error(e.error?.message||'API error');}
+    const data=await res.json();
+    const text=data.content.find(b=>b.type==='text')?.text||'';
+    const clean=text.replace(/```json|```/g,'').trim();
+    const parsed=JSON.parse(clean);
+    S.execSummary=parsed.summary||'';
+    S.execSymptoms=parsed.symptoms||[];
+  }catch(e){
+    S.execError='Could not generate summary: '+e.message;
+  }
+  S.execLoading=false;
+  render();
+}
+
+function persistSave(){
+  const entry={
+    id:Date.now(),name:S.saveName.trim()||'Untitled analysis',
+    notes:S.saveNotes.trim(),
+    date:new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}),
+    sel:{...S.sel},met:JSON.parse(JSON.stringify(S.met)),
+    conflictCount:S.conflicts.length,
+    highCount:S.conflicts.filter(c=>c.sev==='high').length,
+    execSummary:S.execSummary,execSymptoms:S.execSymptoms
+  };
+  S.saved.unshift(entry);lsSave(S.saved);
+  S.saveMode=false;S.saveName='';S.saveNotes='';
+  S.toast='Analysis saved.';
+  setTimeout(()=>{S.toast='';render();},2500);
+  render();
+}
+
+function deleteAnalysis(id){S.saved=S.saved.filter(a=>a.id!==id);lsSave(S.saved);render();}
+
+function loadAnalysis(id){
+  const a=S.saved.find(x=>x.id===id);if(!a)return;
+  S.sel={...a.sel};S.met=JSON.parse(JSON.stringify(a.met));
+  S.execSummary=a.execSummary||'';S.execSymptoms=a.execSymptoms||[];
+  S.exp={};S.cExp={};S.filter='all';runAnalysis();
+}
+
+function runAnalysis(){
+  const active=new Set(Object.keys(S.sel));S.conflicts=[];
+  for(const r of RULES){
+    if(!active.has(r.a)||!active.has(r.b))continue;
+    const aM=S.met[r.a]||[],bM=S.met[r.b]||[];
+    const aH=r.aM.filter(m=>aM.includes(m)).length,bH=r.bM.filter(m=>bM.includes(m)).length;
+    if(!aH||!bH)continue;
+    const sc=calcScore(r,aM,bM),sev=toSev(sc);
+    const dA=DEPTS.find(d=>d.id===r.a),dB=DEPTS.find(d=>d.id===r.b);
+    S.conflicts.push({...r,sc,sev,aLabel:dA.label,bLabel:dB.label,aH,bH});
+  }
+  S.conflicts.sort((a,b)=>b.sc-a.sc);
+  S.phase='results';
+  if(S.apiKey&&!S.execSummary){generateExecSummary();}
+  render();
+}
+
+function deptScore(id){
+  const rel=S.conflicts.filter(c=>c.a===id||c.b===id);
+  if(!rel.length)return 0;
+  return Math.min(10,Math.round(rel.reduce((a,c)=>a+c.sc,0)/rel.length));
+}
+const selDepts=()=>DEPTS.filter(d=>S.sel[d.id]);
+const confCount=()=>selDepts().filter(d=>(S.met[d.id]||[]).length>0).length;
+function toggleDept(id){if(S.sel[id]){delete S.sel[id];delete S.met[id];S.exp[id]=false;}else{S.sel[id]=true;S.exp[id]=true;if(!S.met[id])S.met[id]=[];}render();}
+function toggleExp(id){if(!S.sel[id]){toggleDept(id);return;}S.exp[id]=!S.exp[id];render();}
+function toggleM(dId,m){if(!S.met[dId])S.met[dId]=[];const i=S.met[dId].indexOf(m);if(i>=0)S.met[dId].splice(i,1);else S.met[dId].push(m);render();}
+function addCust(dId){const v=(S.cust[dId]||'').trim();if(!v)return;if(!S.met[dId])S.met[dId]=[];if(!S.met[dId].includes(v))S.met[dId].push(v);S.cust[dId]='';render();}
+function toggleCExp(i){S.cExp[i]=!S.cExp[i];render();}
+function setFilter(f){S.filter=f;render();}
+function newAnalysis(){S.phase='input';S.exp={};S.sel={};S.met={};S.cust={};S.conflicts=[];S.filter='all';S.cExp={};S.execSummary='';S.execSymptoms=[];S.execError='';render();}
+
+function renderApiRow(){
+  const hasKey=!!S.apiKey;
+  if(!S.showApiInput&&hasKey){
+    return`<div class="settings-row"><span style="font-size:11px;color:var(--text3);flex:1;">api key ···${S.apiKey.slice(-4)}</span><span class="key-status" style="color:var(--green-text);">active</span><button class="btn" style="font-size:10px;padding:3px 8px;" onclick="S.showApiInput=true;render()">change</button></div>`;
+  }
+  return`<div class="settings-row"><input type="password" placeholder="sk-ant-... (Anthropic API key for AI summary)" value="${S.apiKey}" oninput="S.apiKey=this.value;setApiKey(this.value);"/>${hasKey?`<button class="btn" style="font-size:10px;padding:3px 8px;" onclick="S.showApiInput=false;render()">done</button>`:''}</div>`;
+}
+
+function renderExecSummary(){
+  if(S.execLoading){
+    return`<div class="exec-summary"><div class="exec-summary-label">executive summary</div><div class="exec-summary-loading">generating analysis...</div></div>`;
+  }
+  if(S.execError){
+    return`<div class="exec-summary"><div class="exec-summary-label">executive summary</div><div style="font-size:11px;color:var(--text3);">${S.execError}</div></div>`;
+  }
+  if(!S.execSummary&&!S.apiKey){
+    return`<div class="exec-summary"><div class="exec-summary-label">executive summary</div><div style="font-size:11px;color:var(--text3);">add an api key above to generate an ai-written executive summary and symptom list.</div></div>`;
+  }
+  if(!S.execSummary)return'';
+  return`<div class="exec-summary">
+    <div class="exec-summary-label">executive summary</div>
+    <div class="exec-summary-text">${S.execSummary}</div>
+    ${S.execSymptoms.length?`<div class="symptoms">
+      <div class="symptom-label">likely symptoms</div>
+      ${S.execSymptoms.map(s=>`<div class="symptom-item"><div class="symptom-dot"></div><span>${s}</span></div>`).join('')}
+    </div>`:''}
+  </div>`;
+}
+
+function exportPDF(){
+  const date=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  const high=S.conflicts.filter(c=>c.sev==='high').length;
+  const med=S.conflicts.filter(c=>c.sev==='medium').length;
+  const dScores=selDepts().map(d=>({label:d.label,s:deptScore(d.id)})).sort((a,b)=>b.s-a.s);
+
+  const execHtml=S.execSummary?`
+    <div class="section-title">executive summary</div><div class="divider"></div>
+    <div style="background:#111;border:0.5px solid #2a2a2a;border-radius:6px;padding:16px;margin-bottom:4px;">
+      <div style="font-size:12px;color:#c8c5c0;line-height:1.9;margin-bottom:${S.execSymptoms.length?'14px':'0'};">${S.execSummary}</div>
+      ${S.execSymptoms.length?`<div style="border-top:0.5px solid #2a2a2a;padding-top:12px;">
+        <div style="font-size:9px;color:#555;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;">likely symptoms</div>
+        ${S.execSymptoms.map(s=>`<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:5px;font-size:11px;color:#888;"><span style="color:#ff3b3b;flex-shrink:0;margin-top:1px;">·</span><span>${s}</span></div>`).join('')}
+      </div>`:''}
+    </div>`:'';
+
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"/>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap');
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{background:#0a0a0a;color:#f0ede8;font-family:'DM Mono',monospace;font-size:12px;line-height:1.6;}
+    .page{max-width:740px;margin:0 auto;padding:40px 48px;}
+    .header{background:#111;border-bottom:1px solid #2a2a2a;padding:32px 48px 24px;margin-bottom:32px;}
+    .wordmark{font-family:'Syne',sans-serif;font-weight:800;font-size:28px;color:#f0ede8;letter-spacing:-0.5px;}
+    .subtitle{font-size:10px;color:#555;letter-spacing:0.12em;text-transform:uppercase;margin-top:4px;}
+    .date{font-size:10px;color:#555;float:right;margin-top:-28px;}
+    .section-title{font-size:10px;color:#555;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;margin-top:28px;}
+    .divider{height:0.5px;background:#2a2a2a;margin-bottom:16px;}
+    .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:4px;}
+    .stat{background:#111;border:0.5px solid #2a2a2a;border-radius:6px;padding:14px;text-align:center;}
+    .stat-val{font-family:'Syne',sans-serif;font-size:28px;font-weight:700;}
+    .stat-lbl{font-size:9px;color:#555;text-transform:uppercase;letter-spacing:0.07em;margin-top:4px;}
+    .top3-item{background:#111;border-radius:4px;padding:12px 14px;margin-bottom:6px;display:flex;align-items:flex-start;gap:10px;}
+    .sev-bar{width:3px;border-radius:2px;flex-shrink:0;align-self:stretch;}
+    .top3-label{font-size:12px;color:#f0ede8;font-weight:500;}
+    .top3-meta{font-size:10px;color:#555;margin-top:3px;}
+    .hm-row{display:grid;grid-template-columns:150px 1fr 36px;gap:8px;align-items:center;margin-bottom:6px;}
+    .hm-lbl{font-size:11px;color:#888;text-align:right;}
+    .hm-track{height:18px;background:#1a1a1a;border-radius:3px;overflow:hidden;}
+    .hm-fill{height:100%;border-radius:3px;}
+    .hm-val{font-size:10px;font-weight:500;text-align:right;}
+    .conflict-item{border:0.5px solid #2a2a2a;border-radius:6px;margin-bottom:8px;overflow:hidden;}
+    .conflict-item.high{border-color:#3a1a1a;}
+    .conflict-hdr{background:#111;padding:10px 14px;display:flex;align-items:flex-start;gap:8px;}
+    .c-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+    .c-label{font-size:12px;color:#f0ede8;font-weight:500;flex:1;}
+    .c-meta{font-size:10px;color:#555;margin-top:2px;}
+    .type-tag{font-size:9px;padding:2px 6px;border-radius:3px;margin-top:5px;display:inline-block;}
+    .c-score{font-size:11px;padding:3px 8px;border-radius:3px;font-weight:500;white-space:nowrap;}
+    .conflict-body{padding:10px 14px;border-top:0.5px solid #2a2a2a;}
+    .frow{display:grid;grid-template-columns:90px 1fr;gap:8px;padding:6px 0;border-bottom:0.5px solid #1a1a1a;}
+    .frow:last-child{border-bottom:none;}
+    .fkey{font-size:9px;color:#555;text-transform:uppercase;letter-spacing:0.07em;padding-top:2px;}
+    .fval{font-size:11px;color:#c8c5c0;line-height:1.6;}
+    .fgood{color:#34d399;}
+    .footer{text-align:center;font-size:9px;color:#333;margin-top:40px;padding-top:16px;border-top:0.5px solid #1a1a1a;}
+    @media print{body{background:#0a0a0a;} @page{margin:0;size:A4;}}
+  </style></head><body>
+  <div class="header"><div class="wordmark">misbehaviour</div><div class="subtitle">incentive conflict report</div><div class="date">${date}</div></div>
+  <div class="page">
+    <div class="section-title">at a glance</div><div class="divider"></div>
+    <div class="stat-grid">
+      <div class="stat"><div class="stat-val" style="color:#f0ede8;">${S.conflicts.length}</div><div class="stat-lbl">Total conflicts</div></div>
+      <div class="stat"><div class="stat-val" style="color:#ff3b3b;">${high}</div><div class="stat-lbl">High severity</div></div>
+      <div class="stat"><div class="stat-val" style="color:#f59e0b;">${med}</div><div class="stat-lbl">Medium severity</div></div>
+      <div class="stat"><div class="stat-val" style="color:#f0ede8;">${selDepts().length}</div><div class="stat-lbl">Departments</div></div>
+    </div>
+    ${execHtml}
+    <div class="section-title">top 3 conflicts</div><div class="divider"></div>
+    ${S.conflicts.slice(0,3).map(c=>`<div class="top3-item"><div class="sev-bar" style="background:${sevCol(c.sev)};min-height:36px;"></div><div><div class="top3-label">${c.label}</div><div class="top3-meta">${c.aLabel} x ${c.bLabel} &nbsp;·&nbsp; ${c.sc.toFixed(1)}/10 &nbsp;·&nbsp; ${TM[c.type].label}</div></div></div>`).join('')}
+    <div class="section-title">department exposure</div><div class="divider"></div>
+    ${dScores.map(d=>`<div class="hm-row"><div class="hm-lbl">${d.label}</div><div class="hm-track"><div class="hm-fill" style="width:${d.s===0?2:d.s*10}%;background:${barCol(d.s)};"></div></div><div class="hm-val" style="color:${barCol(d.s)};">${d.s}/10</div></div>`).join('')}
+    <div class="section-title" style="margin-top:32px;">full conflict list</div><div class="divider"></div>
+    ${S.conflicts.map(c=>{const tm=TM[c.type];return`<div class="conflict-item ${c.sev==='high'?'high':''}"><div class="conflict-hdr"><div class="c-dot" style="background:${sevCol(c.sev)};margin-top:3px;"></div><div style="flex:1;"><div class="c-label">${c.label}</div><div class="c-meta">${c.aLabel} x ${c.bLabel}</div><span class="type-tag" style="background:${tm.bg};color:${tm.txt};border:0.5px solid ${tm.color};">${tm.label}</span></div><span class="c-score" style="background:${tm.bg};color:${tm.txt};">${c.sc.toFixed(1)}</span></div><div class="conflict-body"><div class="frow"><div class="fkey">owner</div><div class="fval">${c.owner}</div></div><div class="frow"><div class="fkey">root cause</div><div class="fval">${c.rootCause}</div></div><div class="frow"><div class="fkey">fix</div><div class="fval">${c.fix}</div></div><div class="frow"><div class="fkey">good =</div><div class="fval fgood">${c.good}</div></div></div></div>`;}).join('')}
+    <div class="footer">misbehaviour &mdash; confidential &mdash; ${date}</div>
+  </div>
+  <script>window.onload=function(){window.print();}<\/script>
+  </body></html>`;
+  const w=window.open('','_blank');w.document.write(html);w.document.close();
+}
+
+const wm=`<div class="wordmark"><span class="wname">misbehaviour</span><span class="wtag">incentive audit</span></div>`;
+
+function render(){
+  const root=document.getElementById('root');
+  const sc=selDepts().length,cc=confCount();
+
+  if(S.phase==='home'){
+    root.innerHTML=`${wm}
+      ${renderApiRow()}
+      <div class="nav-row" style="margin-top:0;margin-bottom:1.5rem;">
+        <button class="btn btn-danger btn-wide" onclick="newAnalysis()">+ new analysis</button>
+      </div>
+      ${S.saved.length===0
+        ?`<div class="empty-state">no saved analyses yet.<br>run your first analysis to get started.</div>`
+        :`<div class="eyebrow">saved analyses</div>
+        ${S.saved.map(a=>`
+          <div class="saved-card" onclick="loadAnalysis(${a.id})">
+            <div style="display:flex;align-items:flex-start;gap:8px;">
+              <div style="flex:1;">
+                <div class="saved-name">${a.name}</div>
+                <div class="saved-meta">${a.date}${a.notes?' · '+a.notes.slice(0,60)+(a.notes.length>60?'...':''):''}</div>
+                <div class="saved-stats">
+                  <span class="saved-stat"><span>${a.highCount}</span> high</span>
+                  <span class="saved-stat" style="color:var(--text3);">·</span>
+                  <span class="saved-stat">${a.conflictCount} total</span>
+                  <span class="saved-stat" style="color:var(--text3);">·</span>
+                  <span class="saved-stat">${Object.keys(a.sel).length} depts</span>
+                </div>
+              </div>
+              <button class="del-btn" onclick="event.stopPropagation();deleteAnalysis(${a.id})">delete</button>
+            </div>
+          </div>`).join('')}`}`;
+    return;
+  }
+
+  const pips=Array.from({length:Math.max(sc+2,3)},(_,i)=>{
+    const cls=S.phase==='results'?'done':i<cc?'done':i===cc?'active':'';
+    return`<div class="pip ${cls}"></div>`;
+  }).join('');
+
+  if(S.phase==='input'){
+    const progress=sc===0?0:Math.round((cc/sc)*100);
+    const ready=sc>=2&&cc===sc;
+    root.innerHTML=`${wm}
+      <div class="phase-track">${pips}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div class="eyebrow" style="margin-bottom:0;">select departments</div>
+        <button class="btn" style="font-size:10px;padding:4px 10px;" onclick="S.phase='home';render()">← home</button>
+      </div>
+      ${sc>0?`<div class="prog-row"><div class="prog-track"><div class="prog-fill" style="width:${progress}%;"></div></div><div class="prog-lbl">${cc}/${sc} configured</div></div>`:''}
+      ${DEPTS.map(d=>{
+        const isSel=!!S.sel[d.id],isExp=!!S.exp[d.id],mC=(S.met[d.id]||[]).length;
+        const custom=(S.met[d.id]||[]).filter(m=>!d.metrics.includes(m));
+        return`<div class="dept-row ${isSel?'sel':''}">
+          <div class="dept-hdr" onclick="toggleExp('${d.id}')">
+            <div class="chk ${isSel?'on':''}" onclick="event.stopPropagation();toggleDept('${d.id}')"><svg width="9" height="7" viewBox="0 0 9 7" fill="none"><path d="M1 3.5L3 5.5L8 1" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <span class="dname">${d.label}</span>
+            ${isSel&&mC>0?`<span class="dmc">${mC} metric${mC>1?'s':''}</span>`:''}
+            ${isSel?`<span class="arr ${isExp?'open':''}">▶</span>`:''}
+          </div>
+          ${isSel&&isExp?`<div class="dbody">
+            <div class="chips">
+              ${d.metrics.map(m=>`<button class="chip ${(S.met[d.id]||[]).includes(m)?'on':''}" onclick="toggleM('${d.id}','${m.replace(/'/g,"\\'")}');">${m}</button>`).join('')}
+              ${custom.map(m=>`<button class="chip on" onclick="toggleM('${d.id}','${m.replace(/'/g,"\\'")}')">x ${m}</button>`).join('')}
+            </div>
+            <div class="crow">
+              <input type="text" placeholder="add custom metric..." value="${S.cust[d.id]||''}" oninput="S.cust['${d.id}']=this.value" onkeydown="if(event.key==='Enter')addCust('${d.id}')"/>
+              <button onclick="addCust('${d.id}')">add</button>
+            </div>
+          </div>`:''}
+        </div>`;
+      }).join('')}
+      <div class="nav-row">
+        <button class="btn btn-danger btn-wide" onclick="runAnalysis()" ${!ready?'disabled':''}>
+          ${!ready&&sc<2?'select at least 2 departments':!ready?`configure ${sc-cc} more dept${sc-cc>1?'s':''}`:'run analysis →'}
+        </button>
+      </div>`;
+    return;
+  }
+
+  if(S.phase==='results'){
+    const high=S.conflicts.filter(c=>c.sev==='high').length;
+    const med=S.conflicts.filter(c=>c.sev==='medium').length;
+    const dScores=selDepts().map(d=>({label:d.label,s:deptScore(d.id)})).sort((a,b)=>b.s-a.s);
+    const filtered=S.filter==='all'?S.conflicts:S.conflicts.filter(c=>c.type===S.filter||c.sev===S.filter);
+
+    if(S.saveMode){
+      root.innerHTML=`${wm}
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+          <div class="eyebrow" style="margin-bottom:0;">save analysis</div>
+          <button class="btn" style="font-size:10px;padding:4px 10px;" onclick="S.saveMode=false;render()">← back</button>
+        </div>
+        <div class="modal">
+          <div class="field-label">analysis name</div>
+          <input class="field-input" type="text" placeholder="e.g. Culture Amp Q2 2026" value="${S.saveName}" oninput="S.saveName=this.value"/>
+          <div class="field-label">notes (optional)</div>
+          <textarea class="field-input" placeholder="Context, observations, or follow-up actions..." oninput="S.saveNotes=this.value">${S.saveNotes}</textarea>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:1rem;">${S.conflicts.length} conflicts · ${high} high · ${selDepts().length} departments</div>
+          <div class="nav-row" style="margin-top:0;">
+            <button class="btn" onclick="S.saveMode=false;render()">cancel</button>
+            <button class="btn btn-green btn-wide" onclick="persistSave()" ${!S.saveName.trim()?'disabled':''}>save ↓</button>
+          </div>
+        </div>`;
+      return;
+    }
+
+    root.innerHTML=`${wm}
+      <div class="phase-track">${pips}</div>
+      ${S.toast?`<div class="toast">${S.toast}</div>`:''}
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+        <div class="eyebrow" style="margin-bottom:0;">${S.conflicts.length} conflict${S.conflicts.length!==1?'s':''} detected</div>
+        <div style="display:flex;gap:6px;">
+          <button class="btn" style="font-size:10px;padding:4px 10px;" onclick="S.phase='input';render()">← edit</button>
+          <button class="btn" style="font-size:10px;padding:4px 10px;" onclick="S.phase='home';render()">home</button>
+        </div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat"><div class="sval" style="color:#ff3b3b;">${high}</div><div class="slbl">High severity</div></div>
+        <div class="stat"><div class="sval" style="color:#f59e0b;">${med}</div><div class="slbl">Medium</div></div>
+        <div class="stat"><div class="sval" style="color:#888;">${S.conflicts.length}</div><div class="slbl">Total</div></div>
+      </div>
+      ${renderExecSummary()}
+      <div class="hm-wrap">
+        <div class="eyebrow" style="margin-bottom:12px;">exposure by department</div>
+        ${dScores.map(d=>`<div class="hm-row">
+          <div class="hm-lbl">${d.label}</div>
+          <div class="hm-track"><div class="hm-fill" style="width:${d.s===0?2:d.s*10}%;background:${barCol(d.s)};"></div></div>
+          <span class="hm-val" style="color:${d.s>5?'#0a0a0a':'#666'};">${d.s}/10</span>
+        </div>`).join('')}
+      </div>
+      <div class="eyebrow" style="margin-bottom:8px;">conflicts — click to expand</div>
+      <div class="filter-row">
+        ${['all','high','inversion','ownership','lag'].map(f=>`<button class="fbtn ${S.filter===f?'on':''}" onclick="setFilter('${f}')">${f==='all'?'all':f==='high'?'high only':f==='inversion'?'inversion':f==='ownership'?'ownership gap':'metric lag'}</button>`).join('')}
+      </div>
+      ${filtered.length===0?`<div style="font-size:11px;color:var(--text3);padding:12px 0;">no conflicts match this filter.</div>`:''}
+      ${filtered.map(c=>{
+        const tm=TM[c.type],origIdx=S.conflicts.indexOf(c),isExp=!!S.cExp[origIdx];
+        return`<div class="cc ${c.sev==='high'?'high':''}">
+          <div class="chdr" onclick="toggleCExp(${origIdx})">
+            <div class="cdot" style="background:${sevCol(c.sev)};"></div>
+            <div class="cbt">
+              <div class="ctitle">${c.label}</div>
+              <div class="cmeta">${c.aLabel} x ${c.bLabel}</div>
+              <div class="ctags">
+                <span class="tag" style="background:${tm.bg};color:${tm.txt};border-color:${tm.color};">${tm.label}</span>
+                <span class="tag">${c.aH}/${c.aM.length} + ${c.bH}/${c.bM.length} signals</span>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;">
+              <span class="spill" style="background:${tm.bg};color:${tm.txt};">${c.sc.toFixed(1)}</span>
+              <span style="font-size:9px;color:#555;">${isExp?'▲':'▼'}</span>
+            </div>
+          </div>
+          ${isExp?`<div class="cexp">
+            <div class="frow"><div class="fkey">owner</div><div class="fval">${c.owner}</div></div>
+            <div class="frow"><div class="fkey">root cause</div><div class="fval">${c.rootCause}</div></div>
+            <div class="frow"><div class="fkey">fix</div><div class="fval">${c.fix}</div></div>
+            <div class="frow"><div class="fkey">good =</div><div class="fval fgood">${c.good}</div></div>
+          </div>`:''}
+        </div>`;
+      }).join('')}
+      <div class="nav-row" style="margin-top:1.25rem;">
+        <button class="btn btn-green" onclick="S.saveMode=true;render()">save ↓</button>
+        <button class="btn btn-wide" onclick="exportPDF()">pdf ↓</button>
+      </div>`;
+  }
+}
+
+render();
+</script>
+</body>
+</html>
