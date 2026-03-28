@@ -290,6 +290,76 @@ function renderExplainer(){
   +'</div>';
 }
 
+function generateRuleBasedSummary(){
+  if(!S.conflicts.length)return'';
+  const total=S.conflicts.length;
+  const high=S.conflicts.filter(c=>c.sev==='high').length;
+  const med=S.conflicts.filter(c=>c.sev==='medium').length;
+  const depts=selDepts();
+  const typeCounts={inversion:0,ownership:0,lag:0};
+  S.conflicts.forEach(c=>typeCounts[c.type]=(typeCounts[c.type]||0)+1);
+  const domType=Object.keys(typeCounts).sort((a,b)=>typeCounts[b]-typeCounts[a])[0];
+  const top=S.conflicts[0];
+  const dScores=depts.map(d=>({label:d.label,score:deptScore(d.id)})).sort((a,b)=>b.score-a.score);
+  const topDept=dScores[0],secDept=dScores[1];
+  const allM=S.conflicts.flatMap(c=>[...c.aM,...c.bM]);
+  const hasNrr=allM.some(m=>['NRR','Churn rate','Health score','Expansion ARR'].includes(m));
+  const hasCac=allM.some(m=>['CAC','CPL','Win rate','MQL volume'].includes(m));
+  const hasTech=allM.some(m=>['Tech debt ratio','Bug rate','Incidents','DORA metrics'].includes(m));
+  const hasAtt=allM.some(m=>['Attrition rate','eNPS','Engagement score'].includes(m));
+  const sevLine=high>0?high+' high severity'+(med>0?' and '+med+' medium':''):med>0?med+' medium severity':'low severity';
+  const typeDesc={inversion:'incentive inversion — teams rewarded for outcomes that create costs in other parts of the business',ownership:'diffuse ownership — accountability for shared outcomes sits between teams with no shared metric',lag:'metric lag — short-term rewards are masking downstream costs that have yet to surface'};
+  let s='This analysis identified '+total+' incentive conflict'+(total!==1?'s':'')+' across '+depts.length+' department'+(depts.length!==1?'s':'')+', '+sevLine+'.';
+  s+=' The dominant pattern is '+typeDesc[domType]+'.';
+  s+=' The highest-scoring conflict is \u201c'+top.label+'\u201d ('+top.sc.toFixed(1)+'/10), between '+top.aLabel+' and '+top.bLabel+'.';
+  if(topDept)s+=' Exposure is highest in '+topDept.label+' ('+topDept.score+'/10)'+(secDept?', followed by '+secDept.label+' ('+secDept.score+'/10)':'')+'.';
+  const cons=[];
+  if(hasNrr)cons.push('erode NRR through preventable churn');
+  if(hasCac)cons.push('inflate CAC and compress pipeline efficiency');
+  if(hasTech)cons.push('accumulate technical debt that will constrain future delivery capacity');
+  if(hasAtt)cons.push('accelerate high-performer attrition at a cost that won\u2019t appear in financials until it compounds');
+  if(cons.length)s+=' Left unresolved, this structure will continue to '+cons.slice(0,2).join(' and ')+'.';
+  s+=' The highest-leverage intervention sits with '+top.owner+'.';
+  return s;
+}
+
+function generateRuleBasedSymptoms(){
+  const syms=[],seen=new Set();
+  const add=s=>{if(!seen.has(s)){seen.add(s);syms.push(s);}};
+  for(const c of S.conflicts.filter(c=>c.sev==='high'||c.sev==='medium').slice(0,8)){
+    const p=c.a+'/'+c.b;
+    if((p==='ae/cs'||p==='cs/ae')&&c.type==='inversion')add('NRR declining despite stable product satisfaction \u2014 churn traces back to deals that should not have closed');
+    if(p==='ae/marketing'||p==='marketing/ae')add('Pipeline coverage looks healthy but close rates are declining \u2014 marketing and sales define lead quality differently');
+    if(p==='product/eng'&&c.type==='inversion')add('Sprint velocity is up but incident rate and bug backlog are growing simultaneously');
+    if((p==='ta/leadership'||p==='ta/ae'||p==='ta/cs')&&c.type==='lag')add('90-day performance of recent hires is declining \u2014 hiring speed is outpacing hiring quality');
+    if((p==='leadership/ae')&&c.type==='inversion')add('Q-end discounting has become routine \u2014 deal margin shrinking without a corresponding increase in win rate');
+    if(p==='people/eng')add('Senior engineer attrition rising as team velocity declines \u2014 institutional knowledge is leaving faster than it can be replaced');
+    if(p==='product/cs'||p==='cs/product')add('CS onboarding time increasing as new features ship without adequate handoff or documentation');
+    if((p==='leadership/people'||p==='people/leadership')&&c.type==='lag')add('Engagement scores declining while leadership OKRs remain green \u2014 the damage is not yet visible in financial metrics');
+    if(p==='support/product'||p==='product/support')add('Known bugs accumulating in backlog while new features ship \u2014 support CSAT declining as a result');
+    if(p==='marketing/cs'&&c.type==='lag')add('Churn concentrated in specific marketing channel cohorts \u2014 ICP mismatch invisible at acquisition, visible at renewal');
+    if(p==='leadership/eng'&&c.type==='lag')add('Technical debt accelerating and delivery timelines slipping \u2014 the cost of past velocity decisions now visible in output');
+    if(p==='support/ta')add('Support headcount growing reactively to ticket volume rather than against root cause analysis');
+    if(p==='marketing/product')add('Sales cycles referencing capabilities not yet shipped \u2014 product and marketing roadmaps are not aligned');
+    if(p==='eng/cs')add('CS incident load rising with deployment frequency \u2014 fast shipping without stability gates is eroding customer trust');
+    if(p==='marketing/support')add('Support CSAT declining as brand promise exceeds delivery reality \u2014 gap between what is sold and what is experienced is widening');
+  }
+  return syms.slice(0,5);
+}
+
+function renderSummary(){
+  const summary=generateRuleBasedSummary();
+  if(!summary)return'';
+  const symptoms=generateRuleBasedSymptoms();
+  return '<div class="exec-summary">'
+    +'<div class="exec-summary-label">executive summary</div>'
+    +'<div class="exec-summary-text">'+summary+'</div>'
+    +(symptoms.length?'<div class="symptoms"><div class="symptom-label">likely symptoms</div>'
+      +symptoms.map(s=>'<div class="symptom-item"><div class="symptom-dot"></div><span>'+s+'</span></div>').join('')
+      +'</div>':'')
+    +'</div>';
+}
+
 function exportPDF(){
   const date=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
   const high=S.conflicts.filter(c=>c.sev==='high').length;
@@ -410,6 +480,7 @@ function render(){
         <div class="eyebrow" style="margin-bottom:0;">select departments</div>
         <button class="btn" style="font-size:10px;padding:4px 10px;" onclick="S.phase='home';render()">← home</button>
       </div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.8;margin-bottom:1.25rem;">Select the departments involved and the metrics each team is actively measured against — the more accurately this reflects reality, the more precise the output.</div>
       ${sc>0?`<div class="prog-row"><div class="prog-track"><div class="prog-fill" style="width:${progress}%;"></div></div><div class="prog-lbl">${cc}/${sc} configured</div></div>`:''}
       ${DEPTS.map(d=>{
         const isSel=!!S.sel[d.id],isExp=!!S.exp[d.id],mC=(S.met[d.id]||[]).length;
@@ -482,6 +553,7 @@ function render(){
         <div class="stat"><div class="sval" style="color:#f59e0b;">${med}</div><div class="slbl">Medium</div></div>
         <div class="stat"><div class="sval" style="color:#888;">${S.conflicts.length}</div><div class="slbl">Total</div></div>
       </div>
+      ${renderSummary()}
       <div class="hm-wrap">
         <div class="eyebrow" style="margin-bottom:12px;">exposure by department</div>
         ${dScores.map(d=>`<div class="hm-row">
