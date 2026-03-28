@@ -290,7 +290,7 @@ function loadAnalysis(id){
 }
 
 function runAnalysis(){
-  const active=new Set(Object.keys(S.sel));S.conflicts=[];
+  const active=new Set(Object.keys(S.sel).filter(id=>(S.met[id]||[]).length>0));S.conflicts=[];
   for(const r of RULES){
     if(!active.has(r.a)||!active.has(r.b))continue;
     const aM=S.met[r.a]||[],bM=S.met[r.b]||[];
@@ -311,7 +311,7 @@ function deptScore(id){
   if(!rel.length)return 0;
   return Math.min(10,Math.round(rel.reduce((a,c)=>a+c.sc,0)/rel.length));
 }
-const selDepts=()=>DEPTS.filter(d=>S.sel[d.id]);
+const selDepts=()=>DEPTS.filter(d=>S.sel[d.id]&&(S.met[d.id]||[]).length>0);
 const confCount=()=>selDepts().filter(d=>(S.met[d.id]||[]).length>0).length;
 function toggleDept(id){if(S.sel[id]){delete S.sel[id];delete S.met[id];S.exp[id]=false;}else{S.sel[id]=true;S.exp[id]=true;if(!S.met[id])S.met[id]=[];}render();}
 function toggleExp(id){if(!S.sel[id]){toggleDept(id);return;}S.exp[id]=!S.exp[id];render();}
@@ -473,7 +473,7 @@ function render(){
 
   if(S.phase==='input'){
     const progress=sc===0?0:Math.round((cc/sc)*100);
-    const ready=sc>=2&&cc===sc;
+    const ready=cc>=2;
     root.innerHTML=`${wm}
       <div class="phase-track">${pips}</div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
@@ -505,7 +505,7 @@ function render(){
       }).join('')}
       <div class="nav-row">
         <button class="btn btn-danger btn-wide" onclick="runAnalysis()" ${!ready?'disabled':''}>
-          ${!ready&&sc<2?'select at least 2 departments':!ready?`configure ${sc-cc} more dept${sc-cc>1?'s':''}`:'run analysis →'}
+          ${!ready?'configure at least 2 departments':'run analysis →'}
         </button>
       </div>`;
     return;
