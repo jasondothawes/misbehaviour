@@ -115,11 +115,7 @@ textarea.field-input{resize:vertical;min-height:70px;line-height:1.6;}
 .symptoms{margin-top:12px;padding-top:12px;border-top:0.5px solid var(--border);}
 .symptom-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;}
 .symptom-item{display:flex;gap:8px;align-items:flex-start;font-size:12px;color:var(--text2);margin-bottom:5px;line-height:1.6;}
-.symptom-dot{width:4px;height:4px;border-radius:50%;background:var(--red);flex-shrink:0;margin-top:6px;}
-.where-to-start{background:var(--bg2);border:0.5px solid var(--border);border-radius:6px;padding:20px 24px;margin-bottom:2rem;}
-.wts-label{font-size:10px;color:var(--text3);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:12px;}
-.wts-text{font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:14px;}
-.wts-focus{font-size:13px;color:var(--text);line-height:1.7;border-top:0.5px solid var(--border2);padding-top:14px;}
+.symptom-dot{width:4px;height:4px;border-radius:50%;background:var(--red);flex-shrink:0;margin-top:6px;}.wts-focus{font-size:13px;color:var(--text);line-height:1.7;border-top:0.5px solid var(--border2);padding-top:14px;}
 .wts-dept{color:var(--red);}
 </style>
 </head>
@@ -401,25 +397,6 @@ function generateRuleBasedSymptoms(){
   });
   return syms.slice(0,5);
 }
-
-function renderWhereToStart(){
-  if(!S.conflicts||!S.conflicts.length)return '';
-  const top=S.conflicts[0];
-  const tc={};S.conflicts.forEach(c=>{tc[c.type]=(tc[c.type]||0)+1;});
-  const dom=Object.entries(tc).sort((a,b)=>b[1]-a[1])[0][0];
-  const allD=[...new Set(S.conflicts.flatMap(c=>[c.a,c.b]))];
-  const topId=allD.map(d=>({id:d,sc:deptScore(d)})).sort((a,b)=>b.sc-a.sc)[0].id;
-  const topLbl=(DEPTS.find(d=>d.id===topId)||{label:topId}).label;
-  const typeText={
-    inversion:'The dominant pattern is incentive inversion — teams rewarded for outcomes that create costs elsewhere. The fix is rarely a personnel change. It requires redefining what success looks like at the boundary between the highest-exposure teams so the right outcome is measurable by both sides.',
-    ownership:'The dominant pattern is diffuse ownership — outcomes that matter to the business fall between teams with no shared metric. The fix requires identifying one team that owns the outcome end-to-end or introducing a shared metric that makes the gap visible to both sides.',
-    lag:'The dominant pattern is metric lag — teams optimising for short-term signals whose downstream costs do not surface for months. The fix requires leading indicators that make future costs visible now before the damage compounds.'
-  };
-  const ownerMap={ae:'CRO / Revenue leadership',cs:'CRO / Revenue leadership',marketing:'CRO / Revenue leadership',product:'CPO / Product leadership',eng:'CTO / Engineering leadership',finance:'CFO / Finance leadership',security:'CISO / Security leadership',leadership:'CEO / Board level',people:'CHRO / People leadership',support:'COO / Operations leadership',ta:'CHRO / People leadership'};
-  const owner=ownerMap[top.a]||ownerMap[top.b]||'cross-functional leadership';
-  const txt=typeText[dom]||typeText.inversion;
-  return '<div class="where-to-start"><div class="wts-label">WHERE TO START</div><div class="wts-text">'+txt+'</div><div class="wts-focus">The highest-leverage intervention is at the <span class="wts-dept">'+topLbl+'</span> boundary — this is where misalignment is doing the most structural damage. Ownership of the fix sits with '+owner+'.</div></div>';
-}
 function renderSummary(){
   const summary=generateRuleBasedSummary();
   if(!summary)return'';
@@ -666,7 +643,7 @@ function render(){
           </div>`:''}
         </div>`;
       }).join('')}
-      ${renderWhereToStart()}<div class="nav-row" style="margin-top:1.25rem;">
+      <div class="nav-row" style="margin-top:1.25rem;">
         <button class="btn btn-green" onclick="S.saveMode=true;render()">save ↓</button>
         <button class="btn btn-wide" onclick="exportPDF()">pdf ↓</button>
       </div>`;
