@@ -207,9 +207,10 @@ const RULES=[
 // Type weights: inversion(3) > ownership(2) = lag(2) per moral hazard severity literature
 // Pairing weights: empirically grounded in P&L consequence proximity
 function calcScore(r,aM,bM){
-  const aH=r.aM.filter(m=>aM.includes(m)).length;
-  const bH=r.bM.filter(m=>bM.includes(m)).length;
-  const signal=((aH/r.aM.length)+(bH/r.bM.length))/2;
+  const rAM=r.aM||(r.sig&&r.sig[r.a])||[],rBM=r.bM||(r.sig&&r.sig[r.b])||[];
+  const aH=rAM.filter(m=>aM.includes(m)).length;
+  const bH=rBM.filter(m=>bM.includes(m)).length;
+  const signal=rAM.length&&rBM.length?((aH/rAM.length)+(bH/rBM.length))/2:0;
   const raw=signal*TM[r.type].w*r.pw;
   return Math.min(10,Math.round((raw/9)*100)/10);
 }
