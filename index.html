@@ -323,17 +323,17 @@ function generateRuleBasedSummary(){
   const hasAtt=allM.some(m=>['Attrition rate','eNPS','Engagement score'].includes(m));
   const sevLine=high>0?high+' high severity'+(med>0?' and '+med+' medium':''):med>0?med+' medium severity':'low severity';
   const typeDesc={inversion:'incentive inversion — teams rewarded for outcomes that create costs in other parts of the business',ownership:'diffuse ownership — accountability for shared outcomes sits between teams with no shared metric',lag:'metric lag — short-term rewards are masking downstream costs that have yet to surface'};
-  let s='This analysis identified '+total+' incentive conflict'+(total!==1?'s':'')+' across '+depts.length+' department'+(depts.length!==1?'s':'')+', '+sevLine+'.';
+  let s='This analysis identified '+total+' incentive misalignment'+(total!==1?'s':'')+' across '+depts.length+' department'+(depts.length!==1?'s':'')+', '+sevLine+'.';
   s+=' The dominant pattern is '+typeDesc[domType]+'.';
-  s+=' The highest-scoring conflict is \u201c'+top.label+'\u201d ('+top.sc.toFixed(1)+'/10), between '+top.aLabel+' and '+top.bLabel+'.';
+  s+=' The highest-scoring misalignment is \u201c'+top.label+'\u201d ('+top.sc.toFixed(1)+'/10), between '+top.aLabel+' and '+top.bLabel+'.';
   if(topDept)s+=' Exposure is highest in '+topDept.label+' ('+topDept.score+'/10)'+(secDept?', followed by '+secDept.label+' ('+secDept.score+'/10)':'')+'.';
   const cons=[];
   if(hasNrr)cons.push('erode NRR through preventable churn');
   if(hasCac)cons.push('inflate CAC and compress pipeline efficiency');
   if(hasTech)cons.push('accumulate technical debt that will constrain future delivery capacity');
   if(hasAtt)cons.push('accelerate high-performer attrition at a cost that won\u2019t appear in financials until it compounds');
-  if(cons.length)s+=' Left unresolved, this structure will continue to '+cons.slice(0,2).join(' and ')+'.';
-  s+=' The highest-leverage intervention sits with '+top.owner+'.';
+  if(cons.length)s+=' Addressing this could prevent '+cons.slice(0,2).join(' and ')+'.';
+  s+=' The highest-leverage intervention point is '+top.owner+'.';
   return s;
 }
 
@@ -474,8 +474,8 @@ function exportPDF(){
     ${S.conflicts.slice(0,3).map(c=>`<div class="top3-item"><div class="sev-bar" style="background:${sevCol(c.sev)};min-height:36px;"></div><div><div class="top3-label">${c.label}</div><div class="top3-meta">${c.aLabel} x ${c.bLabel} &nbsp;·&nbsp; ${c.sc.toFixed(1)}/10 &nbsp;·&nbsp; ${TM[c.type].label}</div></div></div>`).join('')}
     <div class="section-title">department exposure</div><div class="divider"></div>
     ${dScores.map(d=>`<div class="hm-row"><div class="hm-lbl">${d.label}</div><div class="hm-track"><div class="hm-fill" style="width:${d.s===0?2:d.s*10}%;background:${barCol(d.s)};"></div></div><div class="hm-val" style="color:${barCol(d.s)};">${d.s}/10</div></div>`).join('')}
-    <div class="section-title" style="margin-top:32px;">full conflict list</div><div class="divider"></div>
-    ${S.conflicts.map(c=>{const tm=TM[c.type];return`<div class="conflict-item ${c.sev==='high'?'high':''}"><div class="conflict-hdr"><div class="c-dot" style="background:${sevCol(c.sev)};margin-top:3px;"></div><div style="flex:1;"><div class="c-label">${c.label}</div><div class="c-meta">${c.aLabel} x ${c.bLabel}</div><span class="type-tag" style="background:${tm.bg};color:${tm.txt};border:0.5px solid ${tm.color};">${tm.label}</span></div><span class="c-score" style="background:${tm.bg};color:${tm.txt};">${c.sc.toFixed(1)}</span></div><div class="conflict-body"><div class="frow"><div class="fkey">owner</div><div class="fval">${c.owner}</div></div><div class="frow"><div class="fkey">root cause</div><div class="fval">${c.rootCause}</div></div><div class="frow"><div class="fkey">fix</div><div class="fval">${c.fix}</div></div><div class="frow"><div class="fkey">good =</div><div class="fval fgood">${c.good}</div></div></div></div>`;}).join('')}
+    <div class="section-title" style="margin-top:32px;">full friction point list</div><div class="divider"></div>
+    ${S.conflicts.map(c=>{const tm=TM[c.type];return`<div class="conflict-item ${c.sev==='high'?'high':''}"><div class="conflict-hdr"><div class="c-dot" style="background:${sevCol(c.sev)};margin-top:3px;"></div><div style="flex:1;"><div class="c-label">${c.label}</div><div class="c-meta">${c.aLabel} x ${c.bLabel}</div><span class="type-tag" style="background:${tm.bg};color:${tm.txt};border:0.5px solid ${tm.color};">${tm.label}</span></div><span class="c-score" style="background:${tm.bg};color:${tm.txt};">${c.sc.toFixed(1)}</span></div><div class="conflict-body"><div class="frow"><div class="fkey">suggested owner</div><div class="fval">${c.owner}</div></div><div class="frow"><div class="fkey">structural driver</div><div class="fval">${c.rootCause}</div></div><div class="frow"><div class="fkey">fix</div><div class="fval">${c.fix}</div></div><div class="frow"><div class="fkey">good =</div><div class="fval fgood">${c.good}</div></div></div></div>`;}).join('')}
     <div class="footer">misbehaviour &mdash; confidential &mdash; ${date}</div>
   </div>
   <script>window.onload=function(){window.print();}<\/script>
@@ -483,7 +483,7 @@ function exportPDF(){
   const w=window.open('','_blank');w.document.write(html);w.document.close();
 }
 
-const wm=`<div class="wordmark"><span class="wname">misbehaviour</span></div><div style="font-size:11px;color:var(--text3);font-style:italic;margin-top:-1.5rem;margin-bottom:2rem;"><span style="color:var(--text3);">n.</span> when every team is doing exactly what it&#39;s measured against and the business is suffering for it</div>`;
+const wm=`<div class="wordmark"><span class="wname">misbehaviour</span></div><div style="font-size:11px;color:var(--text3);font-style:italic;margin-top:-1.5rem;margin-bottom:2rem;"><span style="color:var(--text3);">n.</span> rational behaviour that produces irrational collective outcomes</div>`;
 
 function render(){
   const root=document.getElementById('root');
@@ -594,7 +594,7 @@ function render(){
       <div class="phase-track">${pips}</div>
       ${S.toast?`<div class="toast">${S.toast}</div>`:''}
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
-        <div class="eyebrow" style="margin-bottom:0;">${S.conflicts.length} conflict${S.conflicts.length!==1?'s':''} detected</div>
+        <div class="eyebrow" style="margin-bottom:0;">${S.conflicts.length} friction point${S.conflicts.length!==1?'s':''} identified</div>
         <div style="display:flex;gap:6px;">
           <button class="btn" style="font-size:10px;padding:4px 10px;" onclick="S.phase='input';render()">← edit</button>
           <button class="btn" style="font-size:10px;padding:4px 10px;" onclick="S.phase='home';render()">home</button>
@@ -614,7 +614,7 @@ function render(){
           <span class="hm-val" style="color:${d.s>5?'#0a0a0a':'#666'};">${d.s}/10</span>
         </div>`).join('')}
       </div>
-      <div class="eyebrow" style="margin-bottom:8px;">conflicts — click to expand</div>
+      <div class="eyebrow" style="margin-bottom:8px;">friction points — click to expand</div>
       <div class="filter-row">
         ${['all','high','inversion','ownership','lag'].map(f=>`<button class="fbtn ${S.filter===f?'on':''}" onclick="setFilter('${f}')">${f==='all'?'all':f==='high'?'high only':f==='inversion'?'inversion':f==='ownership'?'ownership gap':'metric lag'}</button>`).join('')}
       </div>
@@ -638,8 +638,8 @@ function render(){
             </div>
           </div>
           ${isExp?`<div class="cexp">
-            <div class="frow"><div class="fkey">owner</div><div class="fval">${c.owner}</div></div>
-            <div class="frow"><div class="fkey">root cause</div><div class="fval">${c.rootCause}</div></div>
+            <div class="frow"><div class="fkey">suggested owner</div><div class="fval">${c.owner}</div></div>
+            <div class="frow"><div class="fkey">structural driver</div><div class="fval">${c.rootCause}</div></div>
             <div class="frow"><div class="fkey">fix</div><div class="fval">${c.fix}</div></div>
             <div class="frow"><div class="fkey">good =</div><div class="fval fgood">${c.good}</div></div>
           </div>`:''}
