@@ -242,7 +242,7 @@ function lsLoad(){try{return JSON.parse(localStorage.getItem(LS_KEY)||'[]');}cat
 function lsSave(arr){try{localStorage.setItem(LS_KEY,JSON.stringify(arr));}catch(e){}}
 
 let S={
-  phase:'home',exp:{},sel:{},met:{},cust:{},conflicts:[],
+  phase:'home',exp:{},sel:{},met:{},conflicts:[],
   filter:'all',cExp:{},saveMode:false,saveName:'',saveNotes:'',
   toast:'',errorMsg:'',saved:lsLoad(),
   execLoading:false
@@ -301,10 +301,9 @@ const confCount=()=>selDepts().filter(d=>(S.met[d.id]||[]).length>0).length;
 function toggleDept(id){if(S.sel[id]){delete S.sel[id];delete S.met[id];S.exp[id]=false;}else{S.sel[id]=true;S.exp[id]=true;if(!S.met[id])S.met[id]=[];}render();}
 function toggleExp(id){if(!S.sel[id]){toggleDept(id);return;}S.exp[id]=!S.exp[id];render();}
 function toggleM(dId,m){if(!S.met[dId])S.met[dId]=[];const i=S.met[dId].indexOf(m);if(i>=0)S.met[dId].splice(i,1);else S.met[dId].push(m);render();}
-function addCust(dId){const v=(S.cust[dId]||'').trim();if(!v)return;if(!S.met[dId])S.met[dId]=[];if(!S.met[dId].includes(v))S.met[dId].push(v);S.cust[dId]='';render();}
 function toggleCExp(i){S.cExp[i]=!S.cExp[i];render();}
 function setFilter(f){S.filter=f;render();}
-function newAnalysis(){S.phase='input';S.exp={};S.sel={};S.met={};S.cust={};S.conflicts=[];S.filter='all';S.cExp={};render();}
+function newAnalysis(){S.phase='input';S.exp={};S.sel={};S.met={};S.conflicts=[];S.filter='all';S.cExp={};render();}
 
 
 function renderExplainer(){
@@ -552,7 +551,6 @@ function render(){
       ${sc>0?`<div class="prog-row"><div class="prog-track"><div class="prog-fill" style="width:${progress}%;"></div></div><div class="prog-lbl">${cc}/${sc} configured</div></div>`:''}
       ${DEPTS.map(d=>{
         const isSel=!!S.sel[d.id],isExp=!!S.exp[d.id],mC=(S.met[d.id]||[]).length;
-        const custom=(S.met[d.id]||[]).filter(m=>!d.metrics.includes(m));
         return`<div class="dept-row ${isSel?'sel':''}">
           <div class="dept-hdr" onclick="toggleExp('${d.id}')">
             <div class="chk ${isSel?'on':''}" onclick="event.stopPropagation();toggleDept('${d.id}')"><svg width="9" height="7" viewBox="0 0 9 7" fill="none"><path d="M1 3.5L3 5.5L8 1" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
@@ -563,11 +561,6 @@ function render(){
           ${isSel&&isExp?`<div class="dbody">
             <div class="chips">
               ${d.metrics.map(m=>`<button class="chip ${(S.met[d.id]||[]).includes(m)?'on':''}" onclick="toggleM('${d.id}','${m.replace(/'/g,"\\'")}');">${m}</button>`).join('')}
-              ${custom.map(m=>`<button class="chip on" onclick="toggleM('${d.id}','${m.replace(/'/g,"\\'")}')">x ${m}</button>`).join('')}
-            </div>
-            <div class="crow">
-              <input type="text" placeholder="add custom metric..." value="${S.cust[d.id]||''}" oninput="S.cust['${d.id}']=this.value" onkeydown="if(event.key==='Enter')addCust('${d.id}')"/>
-              <button onclick="addCust('${d.id}')">add</button>
             </div>
           </div>`:''}
         </div>`;
@@ -584,7 +577,7 @@ function render(){
     const high=S.conflicts.filter(c=>c.sev==='high').length;
     const med=S.conflicts.filter(c=>c.sev==='medium').length;
     const dScores=selDepts().map(d=>({label:d.label,s:deptScore(d.id)})).sort((a,b)=>b.s-a.s);
-    const filtered=S.filter==='all'?S.conflicts:S.conflicts.filter(c=>c.type===S.filter||c.sev===S.filter);
+    const filtered=S.filter==='all'?S.conflicts:S.conflicts.filter(c=>c.a===S.filter||c.b===S.filter);
 
     if(S.saveMode){
       root.innerHTML=`${wm}
@@ -597,7 +590,7 @@ function render(){
           <input class="field-input" type="text" placeholder="e.g. Culture Amp Q2 2026" value="${S.saveName}" oninput="S.saveName=this.value"/>
           <div class="field-label">notes (optional)</div>
           <textarea class="field-input" placeholder="Context, observations, or follow-up actions..." oninput="S.saveNotes=this.value">${S.saveNotes}</textarea>
-          <div style="font-size:11px;color:var(--text3);margin-bottom:1rem;">${S.conflicts.length} conflicts · ${high} high · ${selDepts().length} departments</div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:1rem;">${S.conflicts.length} friction point${S.conflicts.length!==1?'s':''} · ${high} high · ${selDepts().length} departments</div>
           <div class="nav-row" style="margin-top:0;">
             <button class="btn" onclick="S.saveMode=false;render()">cancel</button>
             <button class="btn btn-green btn-wide" onclick="persistSave()" ${!S.saveName.trim()?'disabled':''}>save ↓</button>
@@ -630,9 +623,22 @@ function render(){
           <span class="hm-val" style="color:${d.s>5?'#0a0a0a':'#666'};">${d.s}/10</span>
         </div>`).join('')}
       </div>
+      ${S.conflicts.length>0?`<div class="eyebrow" style="margin-bottom:8px;margin-top:1.25rem;">top interventions</div>
+      <div style="margin-bottom:1.5rem;border:0.5px solid var(--border);border-radius:6px;background:var(--bg2);overflow:hidden;">
+        ${S.conflicts.slice(0,3).map((c,i)=>`<div style="padding:12px 14px;${i<Math.min(S.conflicts.length,3)-1?'border-bottom:0.5px solid var(--border);':''}">
+          <div style="display:flex;gap:12px;align-items:flex-start;">
+            <div style="font-size:20px;font-family:'Syne',sans-serif;font-weight:800;color:var(--border2);flex-shrink:0;line-height:1.1;">${i+1}</div>
+            <div>
+              <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">${c.aLabel} × ${c.bLabel}</div>
+              <div style="font-size:12px;color:var(--text);line-height:1.7;margin-bottom:5px;">${c.fix}</div>
+              <div style="font-size:10px;color:var(--text3);">→ ${c.owner}</div>
+            </div>
+          </div>
+        </div>`).join('')}
+      </div>`:''}
       <div class="eyebrow" style="margin-bottom:8px;">friction points — click to expand</div>
       <div class="filter-row">
-        ${['all','high','inversion','ownership','lag'].map(f=>`<button class="fbtn ${S.filter===f?'on':''}" onclick="setFilter('${f}')">${f==='all'?'all':f==='high'?'high only':f==='inversion'?'inversion':f==='ownership'?'ownership gap':'metric lag'}</button>`).join('')}
+        ${[{id:'all',label:'all'},...selDepts()].map(d=>`<button class="fbtn ${S.filter===d.id?'on':''}" onclick="setFilter('${d.id}')">${d.label||d.id}</button>`).join('')}
       </div>
       ${filtered.length===0?`<div style="font-size:11px;color:var(--text3);padding:12px 0;">no conflicts match this filter.</div>`:''}
       ${filtered.map(c=>{
@@ -645,7 +651,6 @@ function render(){
               <div class="cmeta">${c.aLabel} x ${c.bLabel}</div>
               <div class="ctags">
                 <span class="tag" style="background:${tm.bg};color:${tm.txt};border-color:${tm.color};">${tm.label}</span>
-                <span class="tag">${c.aH}/${c.aM.length} + ${c.bH}/${c.bM.length} signals</span>
               </div>
             </div>
             <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;">
