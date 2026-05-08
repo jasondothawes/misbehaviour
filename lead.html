@@ -563,19 +563,6 @@ function render(){
           <span class="hm-val" style="color:${d.s>5?'#0a0a0a':'#666'};">${d.s}/10</span>
         </div>`).join('')}
       </div>
-      ${S.conflicts.length>0?`<div class="eyebrow" style="margin-bottom:8px;margin-top:1.25rem;">top interventions</div>
-      <div style="margin-bottom:1.5rem;border:0.5px solid var(--border);border-radius:6px;background:var(--bg2);overflow:hidden;">
-        ${S.conflicts.slice(0,3).map((c,i)=>`<div style="padding:12px 14px;${i<Math.min(S.conflicts.length,3)-1?'border-bottom:0.5px solid var(--border);':''}">
-          <div style="display:flex;gap:12px;align-items:flex-start;">
-            <div style="font-size:20px;font-family:'Syne',sans-serif;font-weight:800;color:var(--border2);flex-shrink:0;line-height:1.1;">${i+1}</div>
-            <div>
-              <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">${c.aLabel} × ${c.bLabel}</div>
-              <div style="font-size:11px;color:var(--text3);line-height:1.7;margin-bottom:5px;font-style:italic;">structural driver and intervention plan available in full engagement</div>
-              <div style="font-size:10px;color:var(--text3);">→ ${c.owner}</div>
-            </div>
-          </div>
-        </div>`).join('')}
-      </div>`:''}
       <div class="eyebrow" style="margin-bottom:8px;">friction points — click to expand</div>
       <div class="filter-row">
         ${[{id:'all',label:'all'},...selDepts()].map(d=>`<button class="fbtn ${S.filter===d.id?'on':''}" onclick="setFilter('${d.id}')">${d.label||d.id}</button>`).join('')}
