@@ -244,6 +244,20 @@ function renderExplainer(){
   +'</div>';
 }
 
+function generatePatternNarrative(typeCounts,total,depts){
+  const lagR=typeCounts.lag/total,invR=typeCounts.inversion/total,ownR=typeCounts.ownership/total;
+  const has=id=>depts.some(d=>d.id===id);
+  if(lagR>=0.55)return'The dominant pattern is deferred cost — teams are being rewarded for short-term output while downstream consequences accumulate out of sight. This is not a performance problem, it’s a measurement problem. The business is generating liabilities that will only become visible when they compound.';
+  if(invR>=0.5)return'The dominant pattern is incentive inversion — teams are being explicitly rewarded for behaviours that create costs elsewhere. This is the most damaging form of misalignment because it is self-reinforcing: each team is doing exactly what it is measured against. The system is working as designed. The design is the problem.';
+  if(ownR>=0.55)return'The dominant pattern is diffuse ownership — the outcomes that matter most to the business sit between functions, with no single team accountable for them. Every team’s metrics can be green while the shared outcomes deteriorate. The gaps between teams are where value is being lost.';
+  if(has('ae')&&has('cs')&&invR>0.25)return'Revenue is entering the business through a leaky funnel. The acquisition and retention engines are pulling in opposite directions — customers are being won in ways that make them harder to keep. Growth is masking a compounding structural problem that will surface at renewal.';
+  if((has('people')||has('ta'))&&has('leadership')&&lagR>0.35)return'The talent and culture conditions that enable everything else are degrading below the threshold of visibility. People metrics are treated as lagging indicators — by the time attrition and disengagement appear in business results, the high performers who were holding things together have already left.';
+  if(has('eng')&&(has('security')||has('finance'))&&lagR>0.25)return'The technical foundation is being traded against short-term delivery and cost targets. Each individual compromise is rational. Collectively they are compounding. The cost will not show up in this quarter’s numbers — it will show up as an incident, a rewrite, or an engineering talent problem in a future one.';
+  const typeDesc={inversion:'incentive inversion — teams rewarded for outcomes that create costs in other parts of the business',ownership:'diffuse ownership — accountability for shared outcomes sits between teams with no shared metric',lag:'metric lag — short-term rewards are masking downstream costs that have yet to surface'};
+  const domType=Object.keys(typeCounts).sort((a,b)=>typeCounts[b]-typeCounts[a])[0];
+  return'The dominant pattern is '+typeDesc[domType]+'.';
+}
+
 function generateRuleBasedSummary(){
   if(!S.conflicts.length)return'';
   const total=S.conflicts.length;
@@ -252,7 +266,6 @@ function generateRuleBasedSummary(){
   const depts=selDepts();
   const typeCounts={inversion:0,ownership:0,lag:0};
   S.conflicts.forEach(c=>typeCounts[c.type]=(typeCounts[c.type]||0)+1);
-  const domType=Object.keys(typeCounts).sort((a,b)=>typeCounts[b]-typeCounts[a])[0];
   const top=S.conflicts[0];
   const dScores=depts.map(d=>({label:d.label,score:deptScore(d.id)})).sort((a,b)=>b.score-a.score);
   const topDept=dScores[0],secDept=dScores[1];
@@ -262,9 +275,8 @@ function generateRuleBasedSummary(){
   const hasTech=allM.some(m=>['Tech debt ratio','Bug rate','Incidents','DORA metrics'].includes(m));
   const hasAtt=allM.some(m=>['Attrition rate','eNPS','Engagement score'].includes(m));
   const sevLine=high>0?high+' high severity'+(med>0?' and '+med+' medium':''):med>0?med+' medium severity':'low severity';
-  const typeDesc={inversion:'incentive inversion — teams rewarded for outcomes that create costs in other parts of the business',ownership:'diffuse ownership — accountability for shared outcomes sits between teams with no shared metric',lag:'metric lag — short-term rewards are masking downstream costs that have yet to surface'};
   let s='This analysis identified '+total+' incentive misalignment'+(total!==1?'s':'')+' across '+depts.length+' department'+(depts.length!==1?'s':'')+', '+sevLine+'.';
-  s+=' The dominant pattern is '+typeDesc[domType]+'.';
+  s+=' '+generatePatternNarrative(typeCounts,total,depts);
   s+=' The highest-scoring misalignment is \u201c'+top.label+'\u201d ('+top.sc.toFixed(1)+'/10), between '+top.aLabel+' and '+top.bLabel+'.';
   if(topDept)s+=' Exposure is highest in '+topDept.label+' ('+topDept.score+'/10)'+(secDept?', followed by '+secDept.label+' ('+secDept.score+'/10)':'')+'.';
   const cons=[];
