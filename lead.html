@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>misbehaviour — incentive diagnostic</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--bg:#0a0a0a;--bg2:#111;--bg3:#181818;--bg4:#222;--border:#2a2a2a;--border2:#333;--text:#f0ede8;--text2:#888;--text3:#555;--red:#ff3b3b;--red-dim:#3d1212;--red-text:#ff8080;--amber:#f59e0b;--amber-dim:#2d1f08;--amber-text:#fbbf24;--purple:#a78bfa;--purple-dim:#1e1535;--purple-text:#c4b5fd;--green:#10b981;--green-dim:#0a2518;--green-text:#34d399;}
+html,body{background:var(--bg);min-height:100vh;font-family:'DM Mono',monospace;color:var(--text);}
+.app{max-width:700px;margin:0 auto;padding:2.5rem 1.5rem;}
+.wordmark{display:flex;align-items:baseline;gap:10px;margin-bottom:2.5rem;}
+.wname{font-family:'Syne',sans-serif;font-weight:800;font-size:24px;color:var(--text);letter-spacing:-0.5px;}
+.wtag{font-size:10px;color:var(--text3);letter-spacing:0.12em;text-transform:uppercase;padding:2px 7px;border:0.5px solid var(--border2);border-radius:3px;}
+.phase-track{display:flex;gap:4px;margin-bottom:2rem;}
+.pip{flex:1;height:2px;background:var(--border);border-radius:1px;transition:background 0.3s;}
+.pip.done{background:var(--green);}
+.pip.active{background:var(--red);}
+.eyebrow{font-size:10px;color:var(--text3);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px;}
+.dept-row{border:0.5px solid var(--border);border-radius:6px;margin-bottom:6px;background:var(--bg2);}
+.dept-row.sel{border-color:#3a2a2a;}
+.dept-hdr{display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;user-select:none;}
+.chk{width:16px;height:16px;border-radius:3px;border:0.5px solid var(--border2);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s;}
+.chk.on{background:var(--red);border-color:var(--red);}
+.chk svg{display:none;}
+.chk.on svg{display:block;}
+.dname{font-size:13px;color:var(--text);flex:1;}
+.dmc{font-size:11px;color:var(--text3);}
+.arr{font-size:9px;color:var(--text3);transition:transform 0.2s;display:inline-block;}
+.arr.open{transform:rotate(90deg);}
+.dbody{padding:0 14px 14px;border-top:0.5px solid var(--border);}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin:10px 0 8px;}
+.chip{padding:4px 10px;border-radius:3px;border:0.5px solid var(--border2);font-size:11px;color:var(--text2);cursor:pointer;background:transparent;font-family:'DM Mono',monospace;transition:all 0.15s;}
+.chip:hover{color:var(--text);}
+.chip.on{background:var(--red-dim);border-color:var(--red);color:var(--red-text);}
+.crow{display:flex;gap:6px;margin-top:4px;}
+.crow input{flex:1;font-size:11px;padding:5px 10px;border-radius:3px;border:0.5px solid var(--border2);background:var(--bg3);color:var(--text);font-family:'DM Mono',monospace;outline:none;}
+.crow input::placeholder{color:var(--text3);}
+.crow button{padding:5px 12px;border-radius:3px;border:0.5px solid var(--border2);background:transparent;color:var(--text2);font-size:11px;cursor:pointer;font-family:'DM Mono',monospace;}
+.crow button:hover{color:var(--text);}
+.prog-row{display:flex;align-items:center;gap:10px;margin-bottom:1.5rem;}
+.prog-track{flex:1;height:2px;background:var(--border);border-radius:1px;overflow:hidden;}
+.prog-fill{height:100%;background:var(--green);border-radius:1px;transition:width 0.3s;}
+.prog-lbl{font-size:11px;color:var(--text3);}
+.nav-row{display:flex;gap:8px;margin-top:1.5rem;}
+.btn{padding:9px 18px;border-radius:4px;border:0.5px solid var(--border2);background:transparent;color:var(--text2);font-size:12px;cursor:pointer;font-family:'DM Mono',monospace;letter-spacing:0.03em;transition:all 0.15s;}
+.btn:hover{color:var(--text);}
+.btn-danger{background:var(--red);border-color:var(--red);color:#fff;}
+.btn-danger:hover{background:#e03030;color:#fff;}
+.btn-danger:disabled{background:#3d1212;border-color:#3d1212;color:#ff8080;opacity:0.5;cursor:default;}
+.btn-green{background:var(--green);border-color:var(--green);color:#fff;}
+.btn-green:hover{background:#0ea572;}
+.btn-green:disabled{opacity:0.4;cursor:default;}
+.btn-wide{flex:1;text-align:center;}
+.btn:disabled{opacity:0.3;cursor:default;}
+.stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:1.5rem;}
+.stat{background:var(--bg2);border:0.5px solid var(--border);border-radius:6px;padding:14px;}
+.sval{font-size:26px;font-weight:500;font-family:'Syne',sans-serif;}
+.slbl{font-size:10px;color:var(--text3);margin-top:4px;letter-spacing:0.06em;text-transform:uppercase;}
+.hm-wrap{background:var(--bg2);border:0.5px solid var(--border);border-radius:6px;padding:1rem;margin-bottom:1rem;}
+.hm-row{display:grid;grid-template-columns:130px 1fr;gap:8px;align-items:center;margin-bottom:6px;}
+.hm-row:last-child{margin-bottom:0;}
+.hm-lbl{font-size:11px;color:var(--text2);text-align:right;}
+.hm-track{position:relative;height:20px;background:var(--bg4);border-radius:3px;overflow:hidden;}
+.hm-fill{height:100%;border-radius:3px;}
+.hm-val{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:10px;font-weight:500;}
+.cc{border:0.5px solid var(--border);border-radius:6px;margin-bottom:6px;background:var(--bg2);}
+.cc.high{border-color:#3a1a1a;}
+.chdr{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;cursor:pointer;user-select:none;}
+.cdot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.cbt{flex:1;min-width:0;}
+.ctitle{font-size:12px;color:var(--text);line-height:1.5;}
+.cmeta{font-size:10px;color:var(--text3);margin-top:3px;}
+.ctags{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;}
+.tag{font-size:10px;padding:2px 7px;border-radius:3px;border:0.5px solid var(--border2);color:var(--text3);}
+.spill{font-size:11px;padding:3px 8px;border-radius:3px;font-weight:500;white-space:nowrap;flex-shrink:0;}
+.cexp{padding:0 14px 14px;border-top:0.5px solid var(--border);}
+.frow{display:grid;grid-template-columns:90px 1fr;gap:8px;padding:9px 0;border-bottom:0.5px solid var(--border);}
+.frow:last-child{border-bottom:none;}
+.fkey{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;padding-top:2px;}
+.fval{font-size:12px;color:var(--text);line-height:1.7;}
+.fgood{color:var(--green-text);}
+.filter-row{display:flex;gap:5px;margin-bottom:1rem;flex-wrap:wrap;}
+.fbtn{padding:3px 10px;border-radius:3px;border:0.5px solid var(--border);font-size:10px;color:var(--text3);cursor:pointer;background:transparent;font-family:'DM Mono',monospace;transition:all 0.15s;}
+.fbtn:hover{color:var(--text2);}
+.fbtn.on{background:var(--red-dim);border-color:var(--red);color:var(--red-text);}
+.modal{background:var(--bg2);border:0.5px solid var(--border2);border-radius:8px;padding:1.5rem;}
+.field-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px;}
+.field-input{width:100%;font-size:13px;padding:8px 12px;border-radius:4px;border:0.5px solid var(--border2);background:var(--bg3);color:var(--text);font-family:'DM Mono',monospace;margin-bottom:1rem;outline:none;}
+.field-input::placeholder{color:var(--text3);}
+textarea.field-input{resize:vertical;min-height:70px;line-height:1.6;}
+.saved-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:6px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:border-color 0.15s;}
+.saved-card:hover{border-color:var(--border2);}
+.saved-name{font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px;}
+.saved-meta{font-size:11px;color:var(--text3);}
+.saved-stats{display:flex;gap:10px;margin-top:8px;}
+.saved-stat{font-size:11px;color:var(--text2);}
+.saved-stat span{color:var(--red);}
+.del-btn{font-size:10px;color:var(--text3);cursor:pointer;padding:2px 6px;border:0.5px solid var(--border);border-radius:3px;background:transparent;font-family:'DM Mono',monospace;margin-left:auto;flex-shrink:0;}
+.del-btn:hover{color:var(--red);border-color:var(--red);}
+.toast{background:var(--green-dim);border:0.5px solid var(--green);border-radius:4px;padding:8px 14px;font-size:11px;color:var(--green-text);margin-bottom:1rem;text-align:center;}
+.error-toast{background:#3d1212;border:0.5px solid var(--red);border-radius:4px;padding:8px 14px;font-size:11px;color:var(--red-text);margin-bottom:1rem;}
+.empty-state{font-size:12px;color:var(--text3);padding:2.5rem 1rem;text-align:center;border:0.5px dashed var(--border);border-radius:6px;line-height:2;}
+.settings-row{display:flex;align-items:center;gap:8px;margin-bottom:1.5rem;padding:10px 14px;background:var(--bg2);border:0.5px solid var(--border);border-radius:6px;}
+.settings-row input{flex:1;font-size:11px;padding:4px 8px;border-radius:3px;border:0.5px solid var(--border2);background:var(--bg3);color:var(--text);font-family:'DM Mono',monospace;outline:none;}
+.settings-row input::placeholder{color:var(--text3);}
+.key-status{font-size:10px;flex-shrink:0;}
+.exec-summary{background:var(--bg2);border:0.5px solid var(--border2);border-radius:6px;padding:1.25rem;margin-bottom:1.25rem;position:relative;}
+.exec-summary-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px;}
+.exec-summary-text{font-size:13px;color:var(--text);line-height:1.9;}
+.exec-summary-loading{font-size:12px;color:var(--text3);font-style:normal;animation:pulse 1.5s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:0.4;}50%{opacity:1;}}
+.symptoms{margin-top:12px;padding-top:12px;border-top:0.5px solid var(--border);}
+.symptom-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;}
+.symptom-item{display:flex;gap:8px;align-items:flex-start;font-size:12px;color:var(--text2);margin-bottom:5px;line-height:1.6;}
+.symptom-dot{width:4px;height:4px;border-radius:50%;background:var(--red);flex-shrink:0;margin-top:6px;}.wts-focus{font-size:13px;color:var(--text);line-height:1.7;border-top:0.5px solid var(--border2);padding-top:14px;}
+.wts-dept{color:var(--red);}
+</style>
+</head>
+<body>
+<div class="app" id="root"></div>
+<script src="rules.js"></script>
+<script>
+const DEPTS=[
+  {id:'ae',label:'Sales (AE)',metrics:['New logo bookings','Pipeline coverage','ACV','Win rate','Time to close','Quota attainment']},
+  {id:'cs',label:'Customer success',metrics:['NRR','Churn rate','NPS','Time to value','Expansion ARR','Health score']},
+  {id:'support',label:'Support',metrics:['CSAT','First response time','Ticket volume','Resolution rate','Escalation rate','Deflection rate']},
+  {id:'product',label:'Product',metrics:['Features shipped','Roadmap adherence','Adoption rate','Time to market','DAU/MAU','Feature usage']},
+  {id:'eng',label:'Engineering',metrics:['Velocity','Bug rate','Deployment frequency','Incidents','Tech debt ratio','DORA metrics']},
+  {id:'marketing',label:'Marketing',metrics:['MQL volume','MQL-to-opp rate','CAC','Pipeline sourced','Brand metrics','CPL']},
+  {id:'ta',label:'Talent acquisition',metrics:['Time to fill','Offer acceptance rate','Pipeline volume','Cost per hire','Quality of hire','Diversity of slate']},
+  {id:'leadership',label:'Leadership',metrics:['Revenue vs target','OKR score','Headcount vs plan','EBITDA','NRR','Burn multiple']},
+  {id:'people',label:'People / HR',metrics:['eNPS','Attrition rate','Time to productivity','Engagement score','Promotion rate','Training completion']},
+  {id:'finance',label:'Finance',metrics:['Burn rate / runway','Gross margin','Budget vs actual','Forecast accuracy','Headcount efficiency','LTV:CAC ratio','Payback period','EBITDA']},
+  {id:'security',label:'Security',metrics:['MTTD','MTTR','Vulnerabilities remediated','Compliance score','Security incidents','Patch coverage','Risk score']},
+];
+
+const TM={
+  inversion:{label:'Incentive inversion',color:'#ff3b3b',bg:'#3d1212',txt:'#ff8080',w:3},
+  ownership:{label:'Ownership gap',color:'#f59e0b',bg:'#2d1f08',txt:'#fbbf24',w:2},
+  lag:{label:'Metric lag',color:'#a78bfa',bg:'#1e1535',txt:'#c4b5fd',w:2},
+};
+
+
+// Research-backed scoring: signal_strength × type_weight × pairing_weight, normalised to 0-10
+// Holmstrom-Milgrom: measurability gap amplifies risk → signal strength matters
+// Type weights: inversion(3) > ownership(2) = lag(2) per moral hazard severity literature
+// Pairing weights: empirically grounded in P&L consequence proximity
+function calcScore(r,aM,bM){
+  const rAM=r.aM||(r.sig&&r.sig[r.a])||[],rBM=r.bM||(r.sig&&r.sig[r.b])||[];
+  const aH=rAM.filter(m=>aM.includes(m)).length;
+  const bH=rBM.filter(m=>bM.includes(m)).length;
+  const signal=rAM.length&&rBM.length?((aH/rAM.length)+(bH/rBM.length))/2:0;
+  const raw=signal*TM[r.type].w*r.pw;
+  return Math.min(10,Math.round((raw/9)*100)/10);
+}
+
+const toSev=s=>s>=7?'high':s>=4?'medium':'low';
+const sevCol=s=>s==='high'?'#ff3b3b':s==='medium'?'#f59e0b':'#10b981';
+const barCol=n=>n>=7?'#ff3b3b':n>=4?'#f59e0b':'#10b981';
+
+const LS_KEY='misbehaviour-analyses';
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function lsLoad(){try{return JSON.parse(localStorage.getItem(LS_KEY)||'[]');}catch(e){return[];}}
+function lsSave(arr){try{localStorage.setItem(LS_KEY,JSON.stringify(arr));}catch(e){}}
+
+let S={
+  phase:'home',exp:{},sel:{},met:{},conflicts:[],
+  filter:'all',cExp:{},saveMode:false,saveName:'',saveNotes:'',
+  toast:'',errorMsg:'',saved:lsLoad(),
+  execLoading:false
+};
+
+
+function persistSave(){
+  const entry={
+    id:Date.now(),name:S.saveName.trim()||'Untitled analysis',
+    notes:S.saveNotes.trim(),
+    date:new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}),
+    sel:{...S.sel},met:JSON.parse(JSON.stringify(S.met)),
+    conflictCount:S.conflicts.length,
+    highCount:S.conflicts.filter(c=>c.sev==='high').length
+  };
+  S.saved.unshift(entry);lsSave(S.saved);
+  S.saveMode=false;S.saveName='';S.saveNotes='';
+  S.toast='Analysis saved.';
+  setTimeout(()=>{S.toast='';render();},2500);
+  render();
+}
+
+function deleteAnalysis(id){S.saved=S.saved.filter(a=>a.id!==id);lsSave(S.saved);render();}
+
+function loadAnalysis(id){
+  const a=S.saved.find(x=>x.id===id);if(!a)return;
+  S.sel={...a.sel};S.met=JSON.parse(JSON.stringify(a.met));
+  S.exp={};S.cExp={};S.filter='all';runAnalysis();
+}
+
+function runAnalysis(){
+  const active=new Set(Object.keys(S.sel).filter(id=>(S.met[id]||[]).length>0));S.conflicts=[];
+  for(const r of RULES){
+    if(!active.has(r.a)||!active.has(r.b))continue;
+    const aM=S.met[r.a]||[],bM=S.met[r.b]||[];
+    const rAM=r.aM||(r.sig&&r.sig[r.a])||[],rBM=r.bM||(r.sig&&r.sig[r.b])||[];const aH=rAM.filter(m=>aM.includes(m)).length,bH=rBM.filter(m=>bM.includes(m)).length;
+    if(!aH||!bH)continue;
+    const sc=calcScore(r,aM,bM),sev=toSev(sc);
+    const dA=DEPTS.find(d=>d.id===r.a),dB=DEPTS.find(d=>d.id===r.b);
+    S.conflicts.push({...r,sc,sev,aLabel:dA.label,bLabel:dB.label,aH,bH});
+  }
+  S.conflicts.sort((a,b)=>b.sc-a.sc);
+  S.phase='results';
+  render();
+}
+
+function deptScore(id){
+  const rel=S.conflicts.filter(c=>c.a===id||c.b===id);
+  if(!rel.length)return 0;
+  const max=Math.max(...rel.map(c=>c.sc));
+  const mean=rel.reduce((a,c)=>a+c.sc,0)/rel.length;
+  return Math.min(10,Math.round((max*0.4+mean*0.6)*10)/10);
+}
+const selDepts=()=>DEPTS.filter(d=>S.sel[d.id]&&(S.met[d.id]||[]).length>0);
+const confCount=()=>selDepts().filter(d=>(S.met[d.id]||[]).length>0).length;
+function toggleDept(id){if(S.sel[id]){delete S.sel[id];delete S.met[id];S.exp[id]=false;}else{S.sel[id]=true;S.exp[id]=true;if(!S.met[id])S.met[id]=[];}render();}
+function toggleExp(id){if(!S.sel[id]){toggleDept(id);return;}S.exp[id]=!S.exp[id];render();}
+function toggleM(dId,m){if(!S.met[dId])S.met[dId]=[];const i=S.met[dId].indexOf(m);if(i>=0)S.met[dId].splice(i,1);else S.met[dId].push(m);render();}
+function toggleCExp(i){S.cExp[i]=!S.cExp[i];render();}
+function setFilter(f){S.filter=f;render();}
+function newAnalysis(){S.phase='input';S.exp={};S.sel={};S.met={};S.conflicts=[];S.filter='all';S.cExp={};render();}
+
+
+function renderExplainer(){
+  return '<div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:6px;padding:1.25rem;margin-bottom:1.5rem;">'
+  +'<div class="eyebrow" style="margin-bottom:10px;">what misaligned incentives cost</div>'
+  +'<div style="font-size:12px;color:var(--text2);line-height:1.9;margin-bottom:1rem;">Most growth problems aren&#39;t product or people problems — they&#39;re incentive problems. Incentives drive behaviours, and misaligned incentives are the most expensive fault line in your business. The goal isn&#39;t to find someone to blame — it&#39;s to find the structural mismatches that make everyone&#39;s hard work add up to less than it should.</div>'
+  +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding-top:1rem;border-top:0.5px solid var(--border);">'
+  +'<div style="font-size:11px;color:var(--text2);line-height:1.7;"><span style="color:var(--red-text);">Incentive inversion</span><br>Rewarding A while hoping for B — the most direct form of misalignment.</div>'
+  +'<div style="font-size:11px;color:var(--text2);line-height:1.7;"><span style="color:var(--amber-text);">Ownership gap</span><br>Accountability diffused across teams with no shared metric for the outcome.</div>'
+  +'<div style="font-size:11px;color:var(--text2);line-height:1.7;"><span style="color:var(--purple-text);">Metric lag</span><br>Short-term reward masks a downstream cost that surfaces months later.</div>'
+  +'</div>'
+  +'<div style="font-size:10px;color:var(--text3);margin-top:1rem;">Based on Kerr (1975) and Holmstrom-Milgrom (1991). Scoring: signal strength × type weight × pairing weight, normalised 0–10.</div>'
+  +'</div>';
+}
+
+function generatePatternNarrative(typeCounts,total,depts){
+  const lagR=typeCounts.lag/total,invR=typeCounts.inversion/total,ownR=typeCounts.ownership/total;
+  const has=id=>depts.some(d=>d.id===id);
+  if(lagR>=0.55)return'The dominant pattern is deferred cost — teams are being rewarded for short-term output while downstream consequences accumulate out of sight. This is not a performance problem, it’s a measurement problem. The business is generating liabilities that will only become visible when they compound.';
+  if(invR>=0.5)return'The dominant pattern is incentive inversion — teams are being explicitly rewarded for behaviours that create costs elsewhere. This is the most damaging form of misalignment because it is self-reinforcing: each team is doing exactly what it is measured against. The system is working as designed. The design is the problem.';
+  if(ownR>=0.55)return'The dominant pattern is diffuse ownership — the outcomes that matter most to the business sit between functions, with no single team accountable for them. Every team’s metrics can be green while the shared outcomes deteriorate. The gaps between teams are where value is being lost.';
+  if(has('ae')&&has('cs')&&invR>0.25)return'Revenue is entering the business through a leaky funnel. The acquisition and retention engines are pulling in opposite directions — customers are being won in ways that make them harder to keep. Growth is masking a compounding structural problem that will surface at renewal.';
+  if((has('people')||has('ta'))&&has('leadership')&&lagR>0.35)return'The talent and culture conditions that enable everything else are degrading below the threshold of visibility. People metrics are treated as lagging indicators — by the time attrition and disengagement appear in business results, the high performers who were holding things together have already left.';
+  if(has('eng')&&(has('security')||has('finance'))&&lagR>0.25)return'The technical foundation is being traded against short-term delivery and cost targets. Each individual compromise is rational. Collectively they are compounding. The cost will not show up in this quarter’s numbers — it will show up as an incident, a rewrite, or an engineering talent problem in a future one.';
+  const typeDesc={inversion:'incentive inversion — teams rewarded for outcomes that create costs in other parts of the business',ownership:'diffuse ownership — accountability for shared outcomes sits between teams with no shared metric',lag:'metric lag — short-term rewards are masking downstream costs that have yet to surface'};
+  const domType=Object.keys(typeCounts).sort((a,b)=>typeCounts[b]-typeCounts[a])[0];
+  return'The dominant pattern is '+typeDesc[domType]+'.';
+}
+
+function generateRuleBasedSummary(){
+  if(!S.conflicts.length)return'';
+  const total=S.conflicts.length;
+  const high=S.conflicts.filter(c=>c.sev==='high').length;
+  const med=S.conflicts.filter(c=>c.sev==='medium').length;
+  const depts=selDepts();
+  const typeCounts={inversion:0,ownership:0,lag:0};
+  S.conflicts.forEach(c=>typeCounts[c.type]=(typeCounts[c.type]||0)+1);
+  const top=S.conflicts[0];
+  const dScores=depts.map(d=>({label:d.label,score:deptScore(d.id)})).sort((a,b)=>b.score-a.score);
+  const topDept=dScores[0],secDept=dScores[1];
+  const allM=S.conflicts.flatMap(c=>[...c.aM,...c.bM]);
+  const hasNrr=allM.some(m=>['NRR','Churn rate','Health score','Expansion ARR'].includes(m));
+  const hasCac=allM.some(m=>['CAC','CPL','Win rate','MQL volume'].includes(m));
+  const hasTech=allM.some(m=>['Tech debt ratio','Bug rate','Incidents','DORA metrics'].includes(m));
+  const hasAtt=allM.some(m=>['Attrition rate','eNPS','Engagement score'].includes(m));
+  const sevLine=high>0?high+' high severity'+(med>0?' and '+med+' medium':''):med>0?med+' medium severity':'low severity';
+  let s='This analysis identified '+total+' incentive misalignment'+(total!==1?'s':'')+' across '+depts.length+' department'+(depts.length!==1?'s':'')+', '+sevLine+'.';
+  s+=' '+generatePatternNarrative(typeCounts,total,depts);
+  s+=' The highest-scoring misalignment is \u201c'+top.label+'\u201d ('+top.sc.toFixed(1)+'/10), between '+top.aLabel+' and '+top.bLabel+'.';
+  if(topDept)s+=' Exposure is highest in '+topDept.label+' ('+topDept.score+'/10)'+(secDept?', followed by '+secDept.label+' ('+secDept.score+'/10)':'')+'.';
+  const cons=[];
+  if(hasNrr)cons.push('erode NRR through preventable churn');
+  if(hasCac)cons.push('inflate CAC and compress pipeline efficiency');
+  if(hasTech)cons.push('accumulate technical debt that will constrain future delivery capacity');
+  if(hasAtt)cons.push('accelerate high-performer attrition at a cost that won\u2019t appear in financials until it compounds');
+  if(cons.length)s+=' Addressing this could prevent '+cons.slice(0,2).join(' and ')+'.';
+  s+=' The highest-leverage intervention point is '+top.owner+'.';
+  return s;
+}
+
+function generateRuleBasedSymptoms(){
+  if(!S.conflicts||!S.conflicts.length)return [];
+  const syms=[];const seen=new Set();
+  const push=s=>{if(!seen.has(s)){seen.add(s);syms.push(s);}};
+  const MAP={
+    'ae/cs':'NRR declining despite stable product satisfaction — churn traces back to deals that should not have closed',
+    'cs/ae':'NRR declining despite stable product satisfaction — churn traces back to deals that should not have closed',
+    'ae/product':'Roadmap commitments made to close deals are not being tracked — Sales and Product have different versions of what was promised',
+    'product/ae':'Roadmap commitments made to close deals are not being tracked — Sales and Product have different versions of what was promised',
+    'ae/marketing':'Sales is discounting deals that Marketing positioned as premium — the ICP is drifting without anyone owning it',
+    'marketing/ae':'MQL volume is up but pipeline quality is down — Sales is qualifying out leads that Marketing is celebrating',
+    'marketing/cs':'High churn in marketing-sourced cohorts is invisible to the marketing team until 6 months after the campaign',
+    'cs/marketing':'CS is firefighting onboarding failures on accounts that were a poor fit from the first touch',
+    'marketing/product':'Feature launches are announced before the product is ready — early adopters churn and leave negative reviews',
+    'product/marketing':'Product ships improvements that Marketing never hears about — launch leverage is left on the table',
+    'product/cs':'Adoption metrics look healthy but CS is spending significant time compensating for poor onboarding UX',
+    'cs/product':'CS escalations are not feeding back into the product roadmap — the same friction points recur quarter after quarter',
+    'product/eng':'Features ship on time but without the infrastructure CS needs — documentation, tooling, and edge cases are afterthoughts',
+    'eng/product':'Engineering velocity is high but regressions are absorbing CS and support capacity',
+    'eng/cs':'Deployment incidents correlate with CS escalation spikes but neither team owns the connection',
+    'cs/eng':'CS is absorbing the customer impact of engineering decisions without any mechanism to feed that cost back',
+    'leadership/ae':'End-of-quarter discount approvals are eroding NRR silently — the full cost only surfaces at renewal',
+    'ae/leadership':'Revenue targets are being hit through deal structure that Finance and CS will inherit as a liability',
+    'leadership/cs':'Leadership knows the NRR number but not the health score trend that predicts it — by the time it moves, the intervention window has already closed',
+    'cs/leadership':'The accounts most at risk are visible to CS six months before they churn — but there is no escalation path that gets them in front of the people who can act',
+    'marketing/support':'Support ticket volume spikes after campaigns — the brand promise creates expectations the product cannot consistently meet',
+    'support/marketing':'Support is resetting customer expectations after Marketing has already set them — the script is always apologetic, never confident',
+    'support/product':'The same support tickets recur every quarter — product is not treating support volume as a signal',
+    'product/support':'Support is compensating for product gaps that are not on any roadmap — workarounds are becoming permanent',
+    'support/ta':'Support attrition is high but TA measures time-to-fill not quality — the team is perpetually understaffed with junior hires',
+    'ta/support':'TA fills support roles on time but 90-day attrition is treated as a people problem — the hiring bar, not the candidate, is the variable that needs fixing',
+    'ta/leadership':'TA is hitting fill rate targets but the headcount plan keeps shifting — pipelines are built against roles that get frozen mid-process',
+    'leadership/ta':'Headcount plans change without warning — TA discovers freezes at the same time as candidates, after pipelines have already been built',
+    'ta/ae':'Open quota-carrying roles are being tracked as a hiring problem but felt as a pipeline problem — the capacity gap shows up in the number before it shows up in a headcount report',
+    'ae/ta':'Sales attrition is being masked by aggressive backfill — the real problem is the quota structure not the candidate pipeline',
+    'ta/cs':'TA is backfilling CS roles under time pressure — the NRR cost of poor CS fit surfaces three quarters after the hire, too late to trace back to the sourcing decision',
+    'cs/ta':'CS is understaffed relative to the book of business — health scores are declining because the team cannot cover the accounts',
+    'people/eng':'Engineering attrition is silent — senior engineers leave before their impact shows in the delivery metrics',
+    'eng/people':'Engineering tenure is declining but exit interviews are treated as individual decisions — the systemic cause is not visible until multiple senior engineers have already left',
+    'people/leadership':'Engagement scores are reviewed quarterly — by the time the trend is visible, the high performers have already updated their LinkedIn profiles',
+    'leadership/people':'Promotion cycles are frozen to manage EBITDA — the cost of the decision arrives 12 months later as voluntary attrition among the highest performers',
+    'finance/ae':'Deal economics are deteriorating quarter by quarter — discount approvals granted case by case with no view of cumulative margin impact',
+    'ae/finance':'Sales is structuring deals to hit quota in ways that create margin exposure Finance is not seeing in real time',
+    'finance/marketing':'Budget cuts hit marketing spend before the pipeline impact is visible — the Q3 shortfall traces to a Q2 finance decision',
+    'marketing/finance':'Marketing is optimising for short-term CAC but cohort LTV is not tracked — Finance approves spend without visibility of the return',
+    'finance/product':'Headcount freezes are stalling the roadmap without changing committed delivery dates — the gap is invisible until it becomes a miss',
+    'product/finance':'Investment decisions are made on headcount cost not output value — Finance cannot distinguish productive from unproductive engineering spend',
+    'finance/eng':'Engineering efficiency pressure is accelerating technical debt — the cost will surface as an incident or a rewrite not in the current budget',
+    'eng/finance':'Infrastructure investment is deferred to hit short-term cost targets — platform fragility is increasing without visibility on the risk',
+    'security/eng':'Deployment velocity is declining as compliance gates accumulate — Engineering routes around security friction rather than resolving it',
+    'eng/security':'Security requirements are treated as a blocker not a shared standard — the gap between what ships and what is hardened is widening',
+    'security/product':'Security vulnerabilities are deferred sprint to sprint — debt is accumulating in shipped features without a remediation roadmap',
+    'product/security':'Product timelines do not include security hardening — Security is reviewing after the fact rather than building in from the start',
+    'security/leadership':'Security investment is chronically underfunded relative to the company risk profile — treated as a cost centre until an incident forces the conversation',
+    'leadership/security':'The security posture is not visible at board level — risk is managed reactively rather than as a strategic input',
+    'ae/people':'Sales attrition is being explained as performance management — the real driver is quota structure creating burnout that People tracks but the CRO does not own',
+    'people/ae':'eNPS in Sales is low and declining but treated as a comp problem — the quota design creating the burnout is not on anyone\'s agenda to fix',
+    'cs/finance':'CS headcount requests are approved too slowly relative to customer growth — health scores are declining not because of capability but because of coverage',
+    'finance/cs':'Finance approves CS headcount on efficiency ratios — the NRR consequence of understaffing does not appear in the model that justified the reduction',
+  };
+  S.conflicts.forEach(c=>{
+    const k=c.a+'/'+c.b;const k2=c.b+'/'+c.a;
+    if(MAP[k])push(MAP[k]);else if(MAP[k2])push(MAP[k2]);
+  });
+  return syms.slice(0,5);
+}
+function renderSummary(){
+  const summary=generateRuleBasedSummary();
+  if(!summary)return'';
+  const symptoms=generateRuleBasedSymptoms();
+  return '<div class="exec-summary">'
+    +'<div class="exec-summary-label">executive summary</div>'
+    +'<div class="exec-summary-text">'+summary+'</div>'
+    +(symptoms.length?'<div class="symptoms"><div class="symptom-label">likely symptoms</div>'
+      +symptoms.map(s=>'<div class="symptom-item"><div class="symptom-dot"></div><span>'+s+'</span></div>').join('')
+      +'</div>':'')
+    +'</div>';
+}
+
+function exportPDF(){
+  const date=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  const high=S.conflicts.filter(c=>c.sev==='high').length;
+  const med=S.conflicts.filter(c=>c.sev==='medium').length;
+  const dScores=selDepts().map(d=>({label:d.label,s:deptScore(d.id)})).sort((a,b)=>b.s-a.s);
+
+
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"/>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap');
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{background:#0a0a0a;color:#f0ede8;font-family:'DM Mono',monospace;font-size:12px;line-height:1.6;}
+    .page{max-width:740px;margin:0 auto;padding:40px 48px;}
+    .header{background:#111;border-bottom:1px solid #2a2a2a;padding:32px 48px 24px;margin-bottom:32px;}
+    .wordmark{font-family:'Syne',sans-serif;font-weight:800;font-size:28px;color:#f0ede8;letter-spacing:-0.5px;}
+    .subtitle{font-size:10px;color:#555;letter-spacing:0.12em;text-transform:uppercase;margin-top:4px;}
+    .date{font-size:10px;color:#555;float:right;margin-top:-28px;}
+    .section-title{font-size:10px;color:#555;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;margin-top:28px;}
+    .divider{height:0.5px;background:#2a2a2a;margin-bottom:16px;}
+    .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:4px;}
+    .stat{background:#111;border:0.5px solid #2a2a2a;border-radius:6px;padding:14px;text-align:center;}
+    .stat-val{font-family:'Syne',sans-serif;font-size:28px;font-weight:700;}
+    .stat-lbl{font-size:9px;color:#555;text-transform:uppercase;letter-spacing:0.07em;margin-top:4px;}
+    .top3-item{background:#111;border-radius:4px;padding:12px 14px;margin-bottom:6px;display:flex;align-items:flex-start;gap:10px;}
+    .sev-bar{width:3px;border-radius:2px;flex-shrink:0;align-self:stretch;}
+    .top3-label{font-size:12px;color:#f0ede8;font-weight:500;}
+    .top3-meta{font-size:10px;color:#555;margin-top:3px;}
+    .hm-row{display:grid;grid-template-columns:150px 1fr 36px;gap:8px;align-items:center;margin-bottom:6px;}
+    .hm-lbl{font-size:11px;color:#888;text-align:right;}
+    .hm-track{height:18px;background:#1a1a1a;border-radius:3px;overflow:hidden;}
+    .hm-fill{height:100%;border-radius:3px;}
+    .hm-val{font-size:10px;font-weight:500;text-align:right;}
+    .conflict-item{border:0.5px solid #2a2a2a;border-radius:6px;margin-bottom:8px;overflow:hidden;}
+    .conflict-item.high{border-color:#3a1a1a;}
+    .conflict-hdr{background:#111;padding:10px 14px;display:flex;align-items:flex-start;gap:8px;}
+    .c-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+    .c-label{font-size:12px;color:#f0ede8;font-weight:500;flex:1;}
+    .c-meta{font-size:10px;color:#555;margin-top:2px;}
+    .type-tag{font-size:9px;padding:2px 6px;border-radius:3px;margin-top:5px;display:inline-block;}
+    .c-score{font-size:11px;padding:3px 8px;border-radius:3px;font-weight:500;white-space:nowrap;}
+    .conflict-body{padding:10px 14px;border-top:0.5px solid #2a2a2a;}
+    .frow{display:grid;grid-template-columns:90px 1fr;gap:8px;padding:6px 0;border-bottom:0.5px solid #1a1a1a;}
+    .frow:last-child{border-bottom:none;}
+    .fkey{font-size:9px;color:#555;text-transform:uppercase;letter-spacing:0.07em;padding-top:2px;}
+    .fval{font-size:11px;color:#c8c5c0;line-height:1.6;}
+    .fgood{color:#34d399;}
+    .footer{text-align:center;font-size:9px;color:#333;margin-top:40px;padding-top:16px;border-top:0.5px solid #1a1a1a;}
+    @media print{body{background:#0a0a0a;} @page{margin:0;size:A4;}}
+  </style></head><body>
+  <div class="header"><div class="wordmark">misbehaviour</div><div class="subtitle">incentive conflict report</div><div class="date">${date}</div></div>
+  <div class="page">
+    <div class="section-title">at a glance</div><div class="divider"></div>
+    <div class="stat-grid">
+      <div class="stat"><div class="stat-val" style="color:#f0ede8;">${S.conflicts.length}</div><div class="stat-lbl">Total conflicts</div></div>
+      <div class="stat"><div class="stat-val" style="color:#ff3b3b;">${high}</div><div class="stat-lbl">High severity</div></div>
+      <div class="stat"><div class="stat-val" style="color:#f59e0b;">${med}</div><div class="stat-lbl">Medium severity</div></div>
+      <div class="stat"><div class="stat-val" style="color:#f0ede8;">${selDepts().length}</div><div class="stat-lbl">Departments</div></div>
+    </div>
+    <div class="section-title">top 3 conflicts</div><div class="divider"></div>
+    ${S.conflicts.slice(0,3).map(c=>`<div class="top3-item"><div class="sev-bar" style="background:${sevCol(c.sev)};min-height:36px;"></div><div><div class="top3-label">${c.label}</div><div class="top3-meta">${c.aLabel} x ${c.bLabel} &nbsp;·&nbsp; ${c.sc.toFixed(1)}/10 &nbsp;·&nbsp; ${TM[c.type].label}</div></div></div>`).join('')}
+    <div class="section-title">department exposure</div><div class="divider"></div>
+    ${dScores.map(d=>`<div class="hm-row"><div class="hm-lbl">${d.label}</div><div class="hm-track"><div class="hm-fill" style="width:${d.s===0?2:d.s*10}%;background:${barCol(d.s)};"></div></div><div class="hm-val" style="color:${barCol(d.s)};">${d.s}/10</div></div>`).join('')}
+    <div class="section-title" style="margin-top:32px;">full friction point list</div><div class="divider"></div>
+    ${S.conflicts.map(c=>{const tm=TM[c.type];return`<div class="conflict-item ${c.sev==='high'?'high':''}"><div class="conflict-hdr"><div class="c-dot" style="background:${sevCol(c.sev)};margin-top:3px;"></div><div style="flex:1;"><div class="c-label">${c.label}</div><div class="c-meta">${c.aLabel} x ${c.bLabel}</div><span class="type-tag" style="background:${tm.bg};color:${tm.txt};border:0.5px solid ${tm.color};">${tm.label}</span></div><span class="c-score" style="background:${tm.bg};color:${tm.txt};">${c.sc.toFixed(1)}</span></div><div class="conflict-body"><div class="frow"><div class="fkey">suggested owner</div><div class="fval">${c.owner}</div></div><div class="frow"><div class="fkey">structural driver</div><div class="fval">${c.rootCause}</div></div><div class="frow"><div class="fkey">fix</div><div class="fval">${c.fix}</div></div><div class="frow"><div class="fkey">good =</div><div class="fval fgood">${c.good}</div></div></div></div>`;}).join('')}
+    <div class="footer">misbehaviour &mdash; confidential &mdash; ${date}</div>
+  </div>
+  <script>window.onload=function(){window.print();}<\/script>
+  </body></html>`;
+  const w=window.open('','_blank');w.document.write(html);w.document.close();
+}
+
+const wm=`<div class="wordmark"><span class="wname">misbehaviour</span></div><div style="font-size:11px;color:var(--text3);font-style:italic;margin-top:-1.5rem;margin-bottom:2rem;"><span style="color:var(--text3);">n.</span> rational behaviour that produces irrational collective outcomes</div>`;
+
+function render(){
+  const root=document.getElementById('root');
+  const sc=selDepts().length,cc=confCount();
+
+  if(S.phase==='home'){
+    root.innerHTML=`${wm}
+      ${renderExplainer()}
+      <div class="nav-row" style="margin-top:0;margin-bottom:1.5rem;">
+        <button class="btn btn-danger btn-wide" onclick="newAnalysis()">find the misbehaviour in your business</button>
+      </div>
+      ${S.saved.length===0
+        ?`<div class="empty-state">no saved analyses yet.<br>run your first analysis to get started.</div>`
+        :`<div class="eyebrow">saved analyses</div>
+        ${S.saved.map(a=>`
+          <div class="saved-card" onclick="loadAnalysis(${a.id})">
+            <div style="display:flex;align-items:flex-start;gap:8px;">
+              <div style="flex:1;">
+                <div class="saved-name">${esc(a.name)}</div>
+                <div class="saved-meta">${a.date}${a.notes?' · '+esc(a.notes).slice(0,60)+(a.notes.length>60?'...':''):''}</div>
+                <div class="saved-stats">
+                  <span class="saved-stat"><span>${a.highCount}</span> high</span>
+                  <span class="saved-stat" style="color:var(--text3);">·</span>
+                  <span class="saved-stat">${a.conflictCount} total</span>
+                  <span class="saved-stat" style="color:var(--text3);">·</span>
+                  <span class="saved-stat">${Object.keys(a.sel).length} depts</span>
+                </div>
+              </div>
+              <button class="del-btn" onclick="event.stopPropagation();deleteAnalysis(${a.id})">delete</button>
+            </div>
+          </div>`).join('')}`}`;
+    return;
+  }
+
+  const pips=Array.from({length:Math.max(sc+2,3)},(_,i)=>{
+    const cls=S.phase==='results'?'done':i<cc?'done':i===cc?'active':'';
+    return`<div class="pip ${cls}"></div>`;
+  }).join('');
+
+  if(S.phase==='input'){
+    const progress=sc===0?0:Math.round((cc/sc)*100);
+    const ready=cc>=2;
+    root.innerHTML=`${wm}
+      <div class="phase-track">${pips}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div class="eyebrow" style="margin-bottom:0;">select departments</div>
+        <button class="btn" style="font-size:10px;padding:4px 10px;" onclick="S.phase='home';render()">← home</button>
+      </div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.8;margin-bottom:1.25rem;">Select the departments involved and toggle the metrics each team is actively measured against. Each selection is matched against known incentive conflict patterns — the more accurately this reflects reality, the more precise the output.</div>
+      ${sc>0?`<div class="prog-row"><div class="prog-track"><div class="prog-fill" style="width:${progress}%;"></div></div><div class="prog-lbl">${cc}/${sc} configured</div></div>`:''}
+      ${DEPTS.map(d=>{
+        const isSel=!!S.sel[d.id],isExp=!!S.exp[d.id],mC=(S.met[d.id]||[]).length;
+        return`<div class="dept-row ${isSel?'sel':''}">
+          <div class="dept-hdr" onclick="toggleExp('${d.id}')">
+            <div class="chk ${isSel?'on':''}" onclick="event.stopPropagation();toggleDept('${d.id}')"><svg width="9" height="7" viewBox="0 0 9 7" fill="none"><path d="M1 3.5L3 5.5L8 1" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <span class="dname">${d.label}</span>
+            ${isSel&&mC>0?`<span class="dmc">${mC} metric${mC>1?'s':''}</span>`:''}
+            ${isSel?`<span class="arr ${isExp?'open':''}">▶</span>`:''}
+          </div>
+          ${isSel&&isExp?`<div class="dbody">
+            <div class="chips">
+              ${d.metrics.map(m=>`<button class="chip ${(S.met[d.id]||[]).includes(m)?'on':''}" onclick="toggleM('${d.id}','${m.replace(/'/g,"\\'")}');">${m}</button>`).join('')}
+            </div>
+          </div>`:''}
+        </div>`;
+      }).join('')}
+      <div class="nav-row">
+        <button class="btn btn-danger btn-wide" onclick="runAnalysis()" ${!ready?'disabled':''}>
+          ${!ready?'configure at least 2 departments':'run analysis →'}
+        </button>
+      </div>`;
+    return;
+  }
+
+  if(S.phase==='results'){
+    const high=S.conflicts.filter(c=>c.sev==='high').length;
+    const med=S.conflicts.filter(c=>c.sev==='medium').length;
+    const dScores=selDepts().map(d=>({label:d.label,s:deptScore(d.id)})).sort((a,b)=>b.s-a.s);
+    const filtered=S.filter==='all'?S.conflicts:S.conflicts.filter(c=>c.a===S.filter||c.b===S.filter);
+
+    if(S.saveMode){
+      root.innerHTML=`${wm}
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+          <div class="eyebrow" style="margin-bottom:0;">save analysis</div>
+          <button class="btn" style="font-size:10px;padding:4px 10px;" onclick="S.saveMode=false;render()">← back</button>
+        </div>
+        <div class="modal">
+          <div class="field-label">analysis name</div>
+          <input class="field-input" type="text" placeholder="e.g. Culture Amp Q2 2026" value="${S.saveName}" oninput="S.saveName=this.value"/>
+          <div class="field-label">notes (optional)</div>
+          <textarea class="field-input" placeholder="Context, observations, or follow-up actions..." oninput="S.saveNotes=this.value">${S.saveNotes}</textarea>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:1rem;">${S.conflicts.length} friction point${S.conflicts.length!==1?'s':''} · ${high} high · ${selDepts().length} departments</div>
+          <div class="nav-row" style="margin-top:0;">
+            <button class="btn" onclick="S.saveMode=false;render()">cancel</button>
+            <button class="btn btn-green btn-wide" onclick="persistSave()" ${!S.saveName.trim()?'disabled':''}>save ↓</button>
+          </div>
+        </div>`;
+      return;
+    }
+
+    root.innerHTML=`${wm}
+      <div class="phase-track">${pips}</div>
+      ${S.toast?`<div class="toast">${S.toast}</div>`:''}
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+        <div class="eyebrow" style="margin-bottom:0;">${S.conflicts.length} friction point${S.conflicts.length!==1?'s':''} identified</div>
+        <div style="display:flex;gap:6px;">
+          <button class="btn" style="font-size:10px;padding:4px 10px;" onclick="S.phase='input';render()">← edit</button>
+          <button class="btn" style="font-size:10px;padding:4px 10px;" onclick="S.phase='home';render()">home</button>
+        </div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat"><div class="sval" style="color:#ff3b3b;">${high}</div><div class="slbl">High severity</div></div>
+        <div class="stat"><div class="sval" style="color:#f59e0b;">${med}</div><div class="slbl">Medium</div></div>
+        <div class="stat"><div class="sval" style="color:#888;">${S.conflicts.length}</div><div class="slbl">Total</div></div>
+      </div>
+      ${renderSummary()}
+      <div class="hm-wrap">
+        <div class="eyebrow" style="margin-bottom:12px;">exposure by department</div>
+        ${dScores.map(d=>`<div class="hm-row">
+          <div class="hm-lbl">${d.label}</div>
+          <div class="hm-track"><div class="hm-fill" style="width:${d.s===0?2:d.s*10}%;background:${barCol(d.s)};"></div></div>
+          <span class="hm-val" style="color:${d.s>5?'#0a0a0a':'#666'};">${d.s}/10</span>
+        </div>`).join('')}
+      </div>
+      ${S.conflicts.length>0?`<div class="eyebrow" style="margin-bottom:8px;margin-top:1.25rem;">top interventions</div>
+      <div style="margin-bottom:1.5rem;border:0.5px solid var(--border);border-radius:6px;background:var(--bg2);overflow:hidden;">
+        ${S.conflicts.slice(0,3).map((c,i)=>`<div style="padding:12px 14px;${i<Math.min(S.conflicts.length,3)-1?'border-bottom:0.5px solid var(--border);':''}">
+          <div style="display:flex;gap:12px;align-items:flex-start;">
+            <div style="font-size:20px;font-family:'Syne',sans-serif;font-weight:800;color:var(--border2);flex-shrink:0;line-height:1.1;">${i+1}</div>
+            <div>
+              <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">${c.aLabel} × ${c.bLabel}</div>
+              <div style="font-size:11px;color:var(--text3);line-height:1.7;margin-bottom:5px;font-style:italic;">structural driver and intervention plan available in full engagement</div>
+              <div style="font-size:10px;color:var(--text3);">→ ${c.owner}</div>
+            </div>
+          </div>
+        </div>`).join('')}
+      </div>`:''}
+      <div class="eyebrow" style="margin-bottom:8px;">friction points — click to expand</div>
+      <div class="filter-row">
+        ${[{id:'all',label:'all'},...selDepts()].map(d=>`<button class="fbtn ${S.filter===d.id?'on':''}" onclick="setFilter('${d.id}')">${d.label||d.id}</button>`).join('')}
+      </div>
+      ${filtered.length===0?`<div style="font-size:11px;color:var(--text3);padding:12px 0;">no conflicts match this filter.</div>`:''}
+      ${filtered.map(c=>{
+        const tm=TM[c.type],origIdx=S.conflicts.indexOf(c),isExp=!!S.cExp[origIdx];
+        return`<div class="cc ${c.sev==='high'?'high':''}">
+          <div class="chdr" onclick="toggleCExp(${origIdx})">
+            <div class="cdot" style="background:${sevCol(c.sev)};"></div>
+            <div class="cbt">
+              <div class="ctitle">${c.label}</div>
+              <div class="cmeta">${c.aLabel} x ${c.bLabel}</div>
+              <div class="ctags">
+                <span class="tag" style="background:${tm.bg};color:${tm.txt};border-color:${tm.color};">${tm.label}</span>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;">
+              <span class="spill" style="background:${tm.bg};color:${tm.txt};">${c.sc.toFixed(1)}</span>
+              <span style="font-size:9px;color:#555;">${isExp?'▲':'▼'}</span>
+            </div>
+          </div>
+          ${isExp?`<div class="cexp">
+            <div class="frow"><div class="fkey">suggested owner</div><div class="fval">${c.owner}</div></div>
+            <div style="padding:12px 0 4px;">
+              <div style="background:var(--bg3);border:0.5px solid var(--border);border-radius:4px;padding:12px 14px;">
+                <div style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.7;">The structural driver, intervention plan, and aligned state for this friction point are available in the full engagement.</div>
+                <button class="btn btn-danger" style="font-size:10px;padding:4px 14px;" onclick="window.location='mailto:hello@misbehaviour.co?subject=Full analysis request'">get the full analysis →</button>
+              </div>
+            </div>
+          </div>`:''}
+        </div>`;
+      }).join('')}
+      <div style="background:var(--red-dim);border:0.5px solid var(--red);border-radius:6px;padding:14px 16px;margin-top:1.5rem;">
+        <div style="font-size:11px;color:var(--red-text);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">full intervention plan available</div>
+        <div style="font-size:12px;color:var(--text);line-height:1.8;margin-bottom:12px;">Each friction point comes with a structural driver, a prioritised fix, and a description of what aligned looks like. Get the complete analysis in a 90-minute session.</div>
+        <div class="nav-row" style="margin-top:0;">
+          <button class="btn btn-green" onclick="S.saveMode=true;render()">save ↓</button>
+          <button class="btn btn-danger btn-wide" onclick="window.location='mailto:hello@misbehaviour.co?subject=Full analysis request'">book a session →</button>
+        </div>
+      </div>`;
+  }
+}
+
+render();
+</script>
+</body>
+</html>
